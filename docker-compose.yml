@@ -1,4 +1,16 @@
 services:
+  # ── DNS ─────────────────────────────────────────────────────────────────
+  # CoreDNS answers every *.${LAN_DOMAIN} query with ${KAISER_IP}. pfSense
+  # Unbound's Domain Override (programmed by domain.py) forwards the whole
+  # ${LAN_DOMAIN} zone to this server on UDP/TCP 53.
+  coredns:
+    image: coredns/coredns:1.11.1
+    network_mode: host                  # needs raw :53/udp + :53/tcp on the host
+    command: [ "-conf", "/etc/coredns/Corefile" ]
+    volumes:
+      - ./coredns/Corefile:/etc/coredns/Corefile:ro
+    restart: unless-stopped
+
   traefik-lan:
     image: traefik:v3.6.9
     network_mode: host

@@ -58,7 +58,8 @@ RSYNC_OPTS=(
 
 # --- 0. render templates (cheap; in case .env changed since setup.sh) ----- #
 envsubst '${LAN_DOMAIN}' < traefik-lan/dynamic.yml.tmpl > traefik-lan/dynamic.yml
-echo "rendered traefik-lan/dynamic.yml"
+envsubst '${LAN_DOMAIN} ${KAISER_IP}' < coredns/Corefile.tmpl > coredns/Corefile
+echo "rendered traefik-lan/dynamic.yml + coredns/Corefile"
 
 # --- 1. pfSense domain override ------------------------------------------ #
 if ! $SKIP_DNS; then

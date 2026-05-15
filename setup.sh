@@ -58,6 +58,8 @@ fi
 if command -v envsubst >/dev/null; then
   envsubst '${LAN_DOMAIN}' < traefik-lan/dynamic.yml.tmpl > traefik-lan/dynamic.yml
   echo "  → traefik-lan/dynamic.yml rendered"
+  envsubst '${LAN_DOMAIN} ${KAISER_IP}' < coredns/Corefile.tmpl > coredns/Corefile
+  echo "  → coredns/Corefile rendered"
 else
   echo "  WARNING: envsubst not found; cannot render templates. Install gettext."
 fi

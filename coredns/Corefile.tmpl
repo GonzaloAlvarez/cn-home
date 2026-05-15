@@ -1,0 +1,17 @@
+. {
+    errors
+    health :8053
+}
+
+${LAN_DOMAIN}:53 {
+    log
+    errors
+    # Wildcard zone: every name in ${LAN_DOMAIN} (apex + any subdomain)
+    # resolves to ${KAISER_IP}. pfSense Unbound forwards the whole zone
+    # here via the Domain Override programmed by domain.py.
+    template IN A ${LAN_DOMAIN} {
+        match ".*\.${LAN_DOMAIN}\.|${LAN_DOMAIN}\."
+        answer "{{ .Name }} 60 IN A ${KAISER_IP}"
+        fallthrough
+    }
+}
