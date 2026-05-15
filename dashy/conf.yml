@@ -58,40 +58,6 @@ sections:
         icon: si-portainer
         target: newtab
 
-  - name: Tailnet (lab.gn.al)
-    icon: fas fa-network-wired
-    items:
-      - title: Home (Glance)
-        description: VPS-side dashboard
-        url: https://home.lab.gn.al
-        icon: fas fa-home
-        target: newtab
-      - title: Grafana (VPS)
-        description: Tailnet observability
-        url: https://grafana.lab.gn.al
-        icon: si-grafana
-        target: newtab
-      - title: Prometheus (VPS)
-        url: https://prometheus.lab.gn.al
-        icon: si-prometheus
-        target: newtab
-      - title: Vaultwarden
-        url: https://passwords.lab.gn.al
-        icon: si-bitwarden
-        target: newtab
-      - title: NetBox
-        url: https://netbox.lab.gn.al
-        icon: fas fa-network-wired
-        target: newtab
-      - title: Filebrowser
-        url: https://filemanager.lab.gn.al
-        icon: fas fa-folder-open
-        target: newtab
-      - title: FreshRSS (cluster)
-        url: https://freshrss.lab.gn.al
-        icon: si-rss
-        target: newtab
-
   - name: Cluster (k8s.lan)
     icon: si-kubernetes
     items:
@@ -125,7 +91,7 @@ sections:
         icon: si-bitwarden
         target: newtab
       - title: pfSense
-        url: https://10.1.0.1
+        url: https://router.lan
         icon: si-pfsense
         target: newtab
       - title: step-ca / Uptime Kuma
