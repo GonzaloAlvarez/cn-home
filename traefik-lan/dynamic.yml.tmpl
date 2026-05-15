@@ -1,0 +1,98 @@
+# cn-home/traefik-lan/dynamic.yml — the routing contract between cn-home and
+# every other compose project on kaiser.lan. Each subdomain forwards to a
+# 127.0.0.1:<port> binding on the host (because Traefik runs network_mode: host).
+#
+# ────────────────────────────────────────────────────────────────────────────
+# LLM-AGENT EDIT TARGET
+# Add a new service by appending a router (HTTPS) + service block below.
+# - The router rule MUST be `Host(\`<sub>.${LAN_DOMAIN}\`)` so it works for any
+#   apex; envsubst expands ${LAN_DOMAIN} at render-time.
+# - The service must bind to a 127.0.0.1:<port> on the kaiser host. If the new
+#   service is in cn-observability or another sibling repo, document the port
+#   there too.
+# - The HTTP catch-all redirect under `http-catchall` is global; new services
+#   don't need their own redirect middleware.
+# ────────────────────────────────────────────────────────────────────────────
+http:
+  middlewares:
+    https-redirect:
+      redirectScheme:
+        scheme: https
+        permanent: true
+
+  routers:
+    # Catch-all: any HTTP request hitting Traefik on :80 is bumped to :443.
+    http-catchall:
+      rule: "HostRegexp(`.+`)"
+      entryPoints: [web]
+      middlewares: [https-redirect]
+      service: noop@internal
+      priority: 1
+
+    home:
+      rule: "Host(`home.${LAN_DOMAIN}`)"
+      entryPoints: [websecure]
+      service: home
+      tls:
+        certResolver: stepca
+
+    grafana:
+      rule: "Host(`grafana.${LAN_DOMAIN}`)"
+      entryPoints: [websecure]
+      service: grafana
+      tls:
+        certResolver: stepca
+
+    prometheus:
+      rule: "Host(`prometheus.${LAN_DOMAIN}`)"
+      entryPoints: [websecure]
+      service: prometheus
+      tls:
+        certResolver: stepca
+
+    alertmanager:
+      rule: "Host(`alertmanager.${LAN_DOMAIN}`)"
+      entryPoints: [websecure]
+      service: alertmanager
+      tls:
+        certResolver: stepca
+
+    loki:
+      rule: "Host(`loki.${LAN_DOMAIN}`)"
+      entryPoints: [websecure]
+      service: loki
+      tls:
+        certResolver: stepca
+
+    portainer:
+      rule: "Host(`portainer.${LAN_DOMAIN}`)"
+      entryPoints: [websecure]
+      service: portainer
+      tls:
+        certResolver: stepca
+
+  services:
+    home:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1:8085"
+    grafana:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1:3000"
+    prometheus:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1:9090"
+    alertmanager:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1:9093"
+    loki:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1:3100"
+    portainer:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1:9000"

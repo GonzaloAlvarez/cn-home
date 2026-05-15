@@ -1,0 +1,6 @@
+.env
+.pf-creds
+.venv-domain/
+virtualenv.pyz
+certs/root_ca.crt
+traefik-lan/dynamic.yml

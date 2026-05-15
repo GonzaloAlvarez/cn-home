@@ -1,0 +1,154 @@
+#!/usr/bin/env bash
+# cn-home/deploy — idempotent: program pfSense Domain Override, rsync the
+# repo to kaiser, run `docker compose up -d` remotely, then verify.
+#
+#   ./deploy                          # cn-home only
+#   ./deploy --with-observability     # also deploy ../cn-observability/ first
+#   ./deploy --skip-dns               # skip the pfSense step (.pf-creds missing)
+#   ./deploy --skip-verify            # skip the post-deploy curl checks
+
+set -euo pipefail
+
+cd "$(dirname "$0")"
+HERE="$(pwd)"
+
+WITH_OBS=false
+SKIP_DNS=false
+SKIP_VERIFY=false
+for arg in "$@"; do
+  case "$arg" in
+    --with-observability) WITH_OBS=true ;;
+    --skip-dns)           SKIP_DNS=true ;;
+    --skip-verify)        SKIP_VERIFY=true ;;
+    *) echo "unknown flag: $arg" >&2; exit 2 ;;
+  esac
+done
+
+if [ ! -f .env ]; then
+  echo ".env missing — running ./setup.sh first ..." >&2
+  ./setup.sh
+fi
+set -o allexport
+# shellcheck disable=SC1091
+source .env
+set +o allexport
+
+: "${PKI_IP:?PKI_IP missing in .env}"
+: "${LAN_DOMAIN:?LAN_DOMAIN missing in .env}"
+: "${KAISER_IP:?KAISER_IP missing in .env}"
+: "${KAISER_SSH:?KAISER_SSH missing in .env}"
+: "${KAISER_REMOTE_DIR:?KAISER_REMOTE_DIR missing in .env}"
+KAISER_SSH_KEY="${KAISER_SSH_KEY/#\~/$HOME}"
+
+SSH_OPTS=(
+  -o ConnectTimeout=10
+  -o BatchMode=yes
+  -o UserKnownHostsFile=/dev/null
+  -o StrictHostKeyChecking=no
+  -i "$KAISER_SSH_KEY"
+)
+RSYNC_OPTS=(
+  -a --delete
+  --exclude .env
+  --exclude .pf-creds
+  --exclude .git
+  --exclude .venv-domain
+  --exclude virtualenv.pyz
+)
+
+# --- 0. render templates (cheap; in case .env changed since setup.sh) ----- #
+envsubst '${LAN_DOMAIN}' < traefik-lan/dynamic.yml.tmpl > traefik-lan/dynamic.yml
+echo "rendered traefik-lan/dynamic.yml"
+
+# --- 1. pfSense domain override ------------------------------------------ #
+if ! $SKIP_DNS; then
+  echo
+  echo "==> 1/4 pfSense Domain Override: ${LAN_DOMAIN} → ${KAISER_IP}"
+  python3 ./domain.py --domain "$LAN_DOMAIN" --ip "$KAISER_IP"
+fi
+
+deploy_repo() {
+  local local_dir="$1" remote_dir="$2" project_name="$3"
+  echo
+  echo "==> $local_dir → $KAISER_SSH:$remote_dir (project: $project_name)"
+
+  if [ ! -f "$local_dir/.env" ]; then
+    echo "missing $local_dir/.env — run ./setup.sh in that directory first" >&2
+    return 1
+  fi
+
+  ssh "${SSH_OPTS[@]}" "$KAISER_SSH" "mkdir -p '$remote_dir'"
+  rsync "${RSYNC_OPTS[@]}" -e "ssh ${SSH_OPTS[*]}" "$local_dir/" "$KAISER_SSH:$remote_dir/"
+  scp "${SSH_OPTS[@]}" "$local_dir/.env" "$KAISER_SSH:$remote_dir/.env"
+  if [ -f "$local_dir/certs/root_ca.crt" ]; then
+    ssh "${SSH_OPTS[@]}" "$KAISER_SSH" "mkdir -p '$remote_dir/certs'"
+    scp "${SSH_OPTS[@]}" "$local_dir/certs/root_ca.crt" "$KAISER_SSH:$remote_dir/certs/root_ca.crt"
+  fi
+
+  ssh "${SSH_OPTS[@]}" "$KAISER_SSH" "cd '$remote_dir' && docker compose -p '$project_name' up -d"
+}
+
+# --- 2. cn-observability (must be up before cn-home routes to it) -------- #
+if $WITH_OBS; then
+  OBS_DIR="$(cd .. && pwd)/cn-observability"
+  if [ ! -d "$OBS_DIR" ]; then
+    echo "cn-observability not found at $OBS_DIR" >&2
+    exit 1
+  fi
+  echo
+  echo "==> 2/4 deploying cn-observability"
+  deploy_repo "$OBS_DIR" "${KAISER_REMOTE_DIR%/cn-home}/cn-observability" "cn-observability"
+fi
+
+# --- 3. cn-home --------------------------------------------------------- #
+echo
+echo "==> 3/4 deploying cn-home"
+deploy_repo "$HERE" "$KAISER_REMOTE_DIR" "cn-home"
+
+# --- 4. verification block ---------------------------------------------- #
+if $SKIP_VERIFY; then
+  exit 0
+fi
+
+echo
+echo "==> 4/4 verification"
+
+SUBDOMAINS=(home grafana prometheus alertmanager loki portainer)
+fail=0
+
+echo
+echo "  [DNS] each subdomain should resolve to $KAISER_IP"
+for h in "${SUBDOMAINS[@]}"; do
+  ip=$(dig @10.1.0.1 +short "$h.$LAN_DOMAIN" 2>/dev/null | tail -1)
+  if [ "$ip" = "$KAISER_IP" ]; then
+    printf "    %-32s → %s  ✓\n" "$h.$LAN_DOMAIN" "$ip"
+  else
+    printf "    %-32s → %s  ✗ (expected %s)\n" "$h.$LAN_DOMAIN" "${ip:-NXDOMAIN}" "$KAISER_IP"
+    fail=1
+  fi
+done
+
+echo
+echo "  [TLS] curl --cacert each subdomain (200/302/401/404 is fine)"
+CACERT="$HERE/certs/root_ca.crt"
+for h in "${SUBDOMAINS[@]}"; do
+  out=$(curl --cacert "$CACERT" -sS -o /dev/null \
+          -w '%{http_code} %{ssl_verify_result}' \
+          --max-time 10 "https://$h.$LAN_DOMAIN/" 2>&1 || echo "curl_err")
+  code="${out%% *}"
+  ssl_rc="${out##* }"
+  if [[ "$ssl_rc" = "0" && "$code" =~ ^(200|301|302|401|404)$ ]]; then
+    printf "    %-32s HTTP=%s ssl_verify=%s  ✓\n" "$h.$LAN_DOMAIN" "$code" "$ssl_rc"
+  else
+    printf "    %-32s HTTP=%s ssl_verify=%s  ✗\n" "$h.$LAN_DOMAIN" "$code" "$ssl_rc"
+    fail=1
+  fi
+done
+
+echo
+if [ "$fail" -eq 0 ]; then
+  echo "  ✓ verification passed"
+else
+  echo "  ✗ some checks failed — see above"
+  exit 1
+fi

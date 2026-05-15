@@ -1,0 +1,33 @@
+services:
+  traefik-lan:
+    image: traefik:v3.6.9
+    network_mode: host
+    command:
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--providers.file.filename=/etc/traefik/dynamic.yml"
+      - "--providers.file.watch=true"
+      - "--certificatesresolvers.stepca.acme.caserver=https://${PKI_IP}:9000/acme/acme/directory"
+      - "--certificatesresolvers.stepca.acme.email=${ADMIN_EMAIL}"
+      - "--certificatesresolvers.stepca.acme.storage=/acme/acme.json"
+      - "--certificatesresolvers.stepca.acme.httpchallenge.entrypoint=web"
+      - "--log.level=INFO"
+    environment:
+      # Tell Lego to trust step-ca's self-signed root for ACME directory + cert chain validation.
+      - LEGO_CA_CERTIFICATES=/certs/root_ca.crt
+    volumes:
+      - ./traefik-lan/dynamic.yml:/etc/traefik/dynamic.yml:ro
+      - traefik_lan_acme:/acme
+      - ./certs/root_ca.crt:/certs/root_ca.crt:ro
+    restart: unless-stopped
+
+  dashy:
+    image: lissy93/dashy:latest
+    ports:
+      - "127.0.0.1:8085:8080"
+    volumes:
+      - ./dashy/conf.yml:/app/user-data/conf.yml:ro
+    restart: unless-stopped
+
+volumes:
+  traefik_lan_acme:

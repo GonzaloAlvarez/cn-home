@@ -1,0 +1,134 @@
+# cn-home/dashy/conf.yml — kaiser.lan LAN homepage.
+#
+# ────────────────────────────────────────────────────────────────────────────
+# LLM-AGENT EDIT TARGET
+# Add a new service link by appending an `items:` entry under the appropriate
+# `sections[].` group below. Keep alphabetical ordering within each group.
+# Dashy probes each URL when `appConfig.statusCheck` is true.
+# ────────────────────────────────────────────────────────────────────────────
+
+pageInfo:
+  title: home.kaiser.lan
+  description: Homelab LAN dashboard
+  navLinks: []
+
+appConfig:
+  theme: dark
+  layout: auto
+  iconSize: medium
+  language: en
+  statusCheck: true
+  statusCheckInterval: 60
+  faviconApi: faviconkit
+  enableErrorReporting: false
+  disableConfiguration: true
+  hideComponents:
+    hideSettings: false
+    hideHeading: false
+    hideNav: false
+    hideFooter: false
+
+sections:
+  - name: Observability (kaiser.lan)
+    icon: fas fa-chart-line
+    items:
+      - title: Grafana
+        description: Dashboards for kaiser, in-LAN
+        url: https://grafana.kaiser.lan
+        icon: si-grafana
+        target: newtab
+      - title: Prometheus
+        description: Metrics scraper
+        url: https://prometheus.kaiser.lan
+        icon: si-prometheus
+        target: newtab
+      - title: Alertmanager
+        description: Alert routing
+        url: https://alertmanager.kaiser.lan
+        icon: fas fa-bell
+        target: newtab
+      - title: Loki
+        description: Log aggregation
+        url: https://loki.kaiser.lan
+        icon: fas fa-stream
+        target: newtab
+      - title: Portainer
+        description: Container management
+        url: https://portainer.kaiser.lan
+        icon: si-portainer
+        target: newtab
+
+  - name: Tailnet (lab.gn.al)
+    icon: fas fa-network-wired
+    items:
+      - title: Home (Glance)
+        description: VPS-side dashboard
+        url: https://home.lab.gn.al
+        icon: fas fa-home
+        target: newtab
+      - title: Grafana (VPS)
+        description: Tailnet observability
+        url: https://grafana.lab.gn.al
+        icon: si-grafana
+        target: newtab
+      - title: Prometheus (VPS)
+        url: https://prometheus.lab.gn.al
+        icon: si-prometheus
+        target: newtab
+      - title: Vaultwarden
+        url: https://passwords.lab.gn.al
+        icon: si-bitwarden
+        target: newtab
+      - title: NetBox
+        url: https://netbox.lab.gn.al
+        icon: fas fa-network-wired
+        target: newtab
+      - title: Filebrowser
+        url: https://filemanager.lab.gn.al
+        icon: fas fa-folder-open
+        target: newtab
+      - title: FreshRSS (cluster)
+        url: https://freshrss.lab.gn.al
+        icon: si-rss
+        target: newtab
+
+  - name: Cluster (k8s.lan)
+    icon: si-kubernetes
+    items:
+      - title: Headlamp (Cluster UI)
+        url: http://cluster.k8s.lan
+        icon: si-kubernetes
+        target: newtab
+      - title: Longhorn
+        url: http://longhorn.k8s.lan
+        icon: si-rancher
+        target: newtab
+      - title: FreshRSS (LAN)
+        url: http://freshrss.k8s.lan
+        icon: si-rss
+        target: newtab
+      - title: NetBox (LAN)
+        url: http://netbox.k8s.lan
+        icon: fas fa-network-wired
+        target: newtab
+      - title: Filemanager (LAN)
+        url: http://filemanager.k8s.lan
+        icon: fas fa-folder-open
+        target: newtab
+
+  - name: LAN
+    icon: fas fa-server
+    items:
+      - title: Vaultwarden (LAN)
+        description: Passwords on the LAN
+        url: https://passwords.lan
+        icon: si-bitwarden
+        target: newtab
+      - title: pfSense
+        url: https://10.1.0.1
+        icon: si-pfsense
+        target: newtab
+      - title: step-ca / Uptime Kuma
+        url: https://pki.lan
+        icon: fas fa-certificate
+        target: newtab
