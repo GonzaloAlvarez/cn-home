@@ -81,6 +81,9 @@ sudo ufw allow 53/udp comment "cn-home CoreDNS"
 sudo ufw allow 53/tcp comment "cn-home CoreDNS"
 sudo ufw allow 80/tcp comment "cn-home Traefik HTTP"
 sudo ufw allow 443/tcp comment "cn-home Traefik HTTPS"
+# Allow Prometheus (on a docker bridge) to scrape node-exporter on host net.
+sudo ufw allow from 172.16.0.0/12 to any port 9100 proto tcp \
+  comment "cn-observability node-exporter (docker bridges only)"
 ```
 
 …or, if you prefer, disable UFW entirely (`sudo ufw disable`). Without these, pfSense's Unbound can't reach CoreDNS and Traefik can't satisfy step-ca's HTTP-01 challenge.
