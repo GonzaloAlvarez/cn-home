@@ -71,6 +71,20 @@ The pattern, repeating the same shape for every backend:
 
 step-ca will request a new 24h cert on first request to the new subdomain via HTTP-01. No DNS work needed because the Unbound override already catches every subdomain in the zone.
 
+## Host prerequisites (one-time on kaiser)
+
+The new stack needs three privileged ports open. UFW on Debian denies by default; before the first `./deploy` either run:
+
+```sh
+ssh gonzalo@kaiser.lan
+sudo ufw allow 53/udp comment "cn-home CoreDNS"
+sudo ufw allow 53/tcp comment "cn-home CoreDNS"
+sudo ufw allow 80/tcp comment "cn-home Traefik HTTP"
+sudo ufw allow 443/tcp comment "cn-home Traefik HTTPS"
+```
+
+…or, if you prefer, disable UFW entirely (`sudo ufw disable`). Without these, pfSense's Unbound can't reach CoreDNS and Traefik can't satisfy step-ca's HTTP-01 challenge.
+
 ## Files
 
 | Path | Purpose |

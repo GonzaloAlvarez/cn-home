@@ -118,9 +118,13 @@ SUBDOMAINS=(home grafana prometheus alertmanager loki portainer)
 fail=0
 
 echo
-echo "  [DNS] each subdomain should resolve to $KAISER_IP"
+echo "  [DNS] each subdomain should resolve to $KAISER_IP (via the system resolver)"
 for h in "${SUBDOMAINS[@]}"; do
-  ip=$(dig @10.1.0.1 +short "$h.$LAN_DOMAIN" 2>/dev/null | tail -1)
+  ip=$(getent hosts "$h.$LAN_DOMAIN" 2>/dev/null | awk '{print $1}' | head -1)
+  if [ -z "$ip" ]; then
+    # macOS doesn't have getent; fall back to `host`.
+    ip=$(host "$h.$LAN_DOMAIN" 2>/dev/null | awk '/has address/ {print $4; exit}')
+  fi
   if [ "$ip" = "$KAISER_IP" ]; then
     printf "    %-32s → %s  ✓\n" "$h.$LAN_DOMAIN" "$ip"
   else
