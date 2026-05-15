@@ -83,7 +83,8 @@ http:
     prometheus:
       loadBalancer:
         servers:
-          - url: "http://127.0.0.1:9090"
+          # Host port 9091 (not 9090) — kaiser's pmproxy occupies 9090.
+          - url: "http://127.0.0.1:9091"
     alertmanager:
       loadBalancer:
         servers:
