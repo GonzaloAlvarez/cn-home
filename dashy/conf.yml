@@ -119,10 +119,10 @@ sections:
   - name: LAN
     icon: fas fa-server
     items:
-      - title: Vaultwarden (LAN)
-        description: Passwords on the LAN
-        url: https://passwords.lan
-        icon: si-bitwarden
+      - title: Home Assistant
+        description: HA Supervised on homeiot.lan
+        url: https://homeiot.lan
+        icon: si-homeassistant
         target: newtab
       - title: pfSense
         url: https://router.lan
@@ -131,4 +131,9 @@ sections:
       - title: step-ca / Uptime Kuma
         url: https://pki.lan
         icon: fas fa-certificate
+        target: newtab
+      - title: Vaultwarden (LAN)
+        description: Passwords on the LAN
+        url: https://passwords.lan
+        icon: si-bitwarden
         target: newtab
