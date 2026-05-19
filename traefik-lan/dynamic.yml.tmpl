@@ -71,6 +71,52 @@ http:
       tls:
         certResolver: stepca
 
+    # cn-bittorrent — torrent core. Backends are 127.0.0.1:<port> on
+    # kaiser, published by the ts-torrent sidecar in cn-bittorrent
+    # (which owns the network namespace; the qb/*arr suite share it).
+    # See ~/dev/cn-bittorrent/docker-compose.yml for the source of truth.
+    torrent:
+      rule: "Host(`torrent.${LAN_DOMAIN}`)"
+      entryPoints: [websecure]
+      service: torrent
+      tls:
+        certResolver: stepca
+
+    sonarr:
+      rule: "Host(`sonarr.${LAN_DOMAIN}`)"
+      entryPoints: [websecure]
+      service: sonarr
+      tls:
+        certResolver: stepca
+
+    radarr:
+      rule: "Host(`radarr.${LAN_DOMAIN}`)"
+      entryPoints: [websecure]
+      service: radarr
+      tls:
+        certResolver: stepca
+
+    prowlarr:
+      rule: "Host(`prowlarr.${LAN_DOMAIN}`)"
+      entryPoints: [websecure]
+      service: prowlarr
+      tls:
+        certResolver: stepca
+
+    lidarr:
+      rule: "Host(`lidarr.${LAN_DOMAIN}`)"
+      entryPoints: [websecure]
+      service: lidarr
+      tls:
+        certResolver: stepca
+
+    readarr:
+      rule: "Host(`readarr.${LAN_DOMAIN}`)"
+      entryPoints: [websecure]
+      service: readarr
+      tls:
+        certResolver: stepca
+
   services:
     home:
       loadBalancer:
@@ -97,3 +143,28 @@ http:
       loadBalancer:
         servers:
           - url: "http://127.0.0.1:9000"
+
+    torrent:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1:8080"   # qbittorrent WebUI
+    sonarr:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1:8989"
+    radarr:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1:7878"
+    prowlarr:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1:9696"
+    lidarr:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1:8686"
+    readarr:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1:8787"
