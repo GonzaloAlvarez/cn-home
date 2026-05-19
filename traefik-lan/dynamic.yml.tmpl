@@ -117,6 +117,17 @@ http:
       tls:
         certResolver: stepca
 
+    # raidnas (Synology DS418) — DSM web UI. Not on the tailnet; kaiser
+    # routes to the appliance directly via pfSense gateway. step-ca
+    # terminates TLS so the browser stops yelling about the self-signed
+    # cert DSM ships with on :5001.
+    raidnas:
+      rule: "Host(`raidnas.${LAN_DOMAIN}`)"
+      entryPoints: [websecure]
+      service: raidnas
+      tls:
+        certResolver: stepca
+
   services:
     home:
       loadBalancer:
@@ -168,3 +179,12 @@ http:
       loadBalancer:
         servers:
           - url: "http://127.0.0.1:8787"
+
+    # raidnas DSM HTTP backend. 10.120.26.20:5000 is reachable directly
+    # from kaiser via pfSense (the NAS is not on the tailnet). For the
+    # tailnet ingress on raidnas.lab.gn.al, see cn-root-docker plan §6
+    # (VPS Consul registration via traefik-lab + cn-infra subnet route).
+    raidnas:
+      loadBalancer:
+        servers:
+          - url: "http://10.120.26.20:5000"
