@@ -58,6 +58,40 @@ sections:
         icon: si-portainer
         target: newtab
 
+  - name: Torrent (kaiser.lan)
+    icon: fas fa-download
+    items:
+      - title: qBittorrent
+        description: Torrent client — egress via infra-mullvad
+        url: https://torrent.kaiser.lan
+        icon: si-qbittorrent
+        target: newtab
+      - title: Lidarr
+        description: Music indexer/organizer
+        url: https://lidarr.kaiser.lan
+        icon: si-lidarr
+        target: newtab
+      - title: Prowlarr
+        description: Indexer aggregator
+        url: https://prowlarr.kaiser.lan
+        icon: si-prowlarr
+        target: newtab
+      - title: Radarr
+        description: Movies indexer/organizer
+        url: https://radarr.kaiser.lan
+        icon: si-radarr
+        target: newtab
+      - title: Readarr
+        description: Books/eBooks organizer
+        url: https://readarr.kaiser.lan
+        icon: si-readarr
+        target: newtab
+      - title: Sonarr
+        description: TV shows indexer/organizer
+        url: https://sonarr.kaiser.lan
+        icon: si-sonarr
+        target: newtab
+
   - name: Cluster (k8s.lan)
     icon: si-kubernetes
     items:
