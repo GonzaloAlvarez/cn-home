@@ -100,6 +100,11 @@ sections:
         url: https://jellyfin.kaiser.lan
         icon: si-jellyfin
         target: newtab
+      - title: RomM
+        description: Retro ROM library + in-browser play
+        url: https://roms.kaiser.lan
+        icon: si-nintendogamecube
+        target: newtab
 
   - name: Cluster (k8s.lan)
     icon: si-kubernetes
