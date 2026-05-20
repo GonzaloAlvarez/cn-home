@@ -128,13 +128,12 @@ http:
       tls:
         certResolver: stepca
 
-    # cn-media — jellyfin. Bare `jellyfin.lan` (NOT `jellyfin.${LAN_DOMAIN}`)
-    # to match passwords.lan / raidnas.lan / homeiot.lan TLD-style naming
-    # for marquee services. pfSense Host Override points jellyfin.lan at
-    # kaiser (10.1.1.140). Backend is the ts-jellyfin sidecar's published
-    # 127.0.0.1:8096 on this host.
+    # cn-media — jellyfin. Lives on kaiser like every other *.kaiser.lan
+    # service; cn-home's CoreDNS already wildcards `*.kaiser.lan` →
+    # 10.1.1.140, so no pfSense Host Override needed. Backend is the
+    # ts-jellyfin sidecar's published 127.0.0.1:8096.
     jellyfin:
-      rule: "Host(`jellyfin.lan`)"
+      rule: "Host(`jellyfin.${LAN_DOMAIN}`)"
       entryPoints: [websecure]
       service: jellyfin
       tls:

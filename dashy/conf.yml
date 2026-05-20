@@ -97,7 +97,7 @@ sections:
     items:
       - title: Jellyfin
         description: Media server — movies, TV, music
-        url: https://jellyfin.lan
+        url: https://jellyfin.kaiser.lan
         icon: si-jellyfin
         target: newtab
 
