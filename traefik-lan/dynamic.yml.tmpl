@@ -139,6 +139,16 @@ http:
       tls:
         certResolver: stepca
 
+    # cn-roms — RomM ROM library. Backend is the ts-roms sidecar's
+    # published 127.0.0.1:8080. Argosy on Android uses the tailnet path
+    # (roms.lab.gn.al) instead — stock Android doesn't trust step-ca.
+    roms:
+      rule: "Host(`roms.${LAN_DOMAIN}`)"
+      entryPoints: [websecure]
+      service: roms
+      tls:
+        certResolver: stepca
+
   services:
     home:
       loadBalancer:
@@ -208,3 +218,11 @@ http:
       loadBalancer:
         servers:
           - url: "http://127.0.0.1:8096"
+
+    # cn-roms RomM backend — 127.0.0.1:8080 published by the ts-roms
+    # Tailscale sidecar in cn-roms. Tailnet ingress (roms.lab.gn.al) is
+    # wired via cn-roms's consul-register loop + VPS traefik-lab.
+    roms:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1:8080"
