@@ -92,6 +92,15 @@ sections:
         icon: si-sonarr
         target: newtab
 
+  - name: Media (kaiser.lan)
+    icon: fas fa-film
+    items:
+      - title: Jellyfin
+        description: Media server — movies, TV, music
+        url: https://jellyfin.lan
+        icon: si-jellyfin
+        target: newtab
+
   - name: Cluster (k8s.lan)
     icon: si-kubernetes
     items:

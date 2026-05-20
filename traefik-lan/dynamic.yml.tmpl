@@ -128,6 +128,18 @@ http:
       tls:
         certResolver: stepca
 
+    # cn-media — jellyfin. Bare `jellyfin.lan` (NOT `jellyfin.${LAN_DOMAIN}`)
+    # to match passwords.lan / raidnas.lan / homeiot.lan TLD-style naming
+    # for marquee services. pfSense Host Override points jellyfin.lan at
+    # kaiser (10.1.1.140). Backend is the ts-jellyfin sidecar's published
+    # 127.0.0.1:8096 on this host.
+    jellyfin:
+      rule: "Host(`jellyfin.lan`)"
+      entryPoints: [websecure]
+      service: jellyfin
+      tls:
+        certResolver: stepca
+
   services:
     home:
       loadBalancer:
@@ -188,3 +200,12 @@ http:
       loadBalancer:
         servers:
           - url: "http://10.120.26.20:5000"
+
+    # cn-media jellyfin backend — 127.0.0.1:8096 is published on the
+    # kaiser host by the ts-jellyfin Tailscale sidecar in cn-media.
+    # Tailnet ingress (jellyfin.lab.gn.al) is wired via the cn-media
+    # consul-register loop + VPS traefik-lab.
+    jellyfin:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1:8096"
