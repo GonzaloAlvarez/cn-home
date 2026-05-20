@@ -219,10 +219,12 @@ http:
         servers:
           - url: "http://127.0.0.1:8096"
 
-    # cn-roms RomM backend — 127.0.0.1:8080 published by the ts-roms
-    # Tailscale sidecar in cn-roms. Tailnet ingress (roms.lab.gn.al) is
-    # wired via cn-roms's consul-register loop + VPS traefik-lab.
+    # cn-roms RomM backend — 127.0.0.1:8083 published by the ts-roms
+    # Tailscale sidecar in cn-roms (host port 8083, container port 8080;
+    # cn-bittorrent's qbittorrent already owns 127.0.0.1:8080 on this
+    # host). Tailnet ingress (roms.lab.gn.al) is wired via cn-roms's
+    # consul-register loop + VPS traefik-lab.
     roms:
       loadBalancer:
         servers:
-          - url: "http://127.0.0.1:8080"
+          - url: "http://127.0.0.1:8083"
