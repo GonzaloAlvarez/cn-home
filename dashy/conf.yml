@@ -106,6 +106,15 @@ sections:
         icon: si-nintendogamecube
         target: newtab
 
+  - name: Apps (kaiser.lan)
+    icon: fas fa-th-large
+    items:
+      - title: SparkyFitness
+        description: Fitness, nutrition, exercise, hydration tracker
+        url: https://fitness.kaiser.lan
+        icon: fas fa-running
+        target: newtab
+
   - name: Cluster (k8s.lan)
     icon: si-kubernetes
     items:

@@ -149,6 +149,18 @@ http:
       tls:
         certResolver: stepca
 
+    # cn-fitness — SparkyFitness. Backend is the ts-fitness sidecar's
+    # published 127.0.0.1:3004 (frontend nginx, which proxies /api/* to
+    # backend on :3010 inside the same netns). Native Android/iOS apps
+    # use the tailnet path (fitness.lab.gn.al) — step-ca isn't trusted
+    # on stock mobile.
+    fitness:
+      rule: "Host(`fitness.${LAN_DOMAIN}`)"
+      entryPoints: [websecure]
+      service: fitness
+      tls:
+        certResolver: stepca
+
   services:
     home:
       loadBalancer:
@@ -228,3 +240,12 @@ http:
       loadBalancer:
         servers:
           - url: "http://127.0.0.1:8083"
+
+    # cn-fitness SparkyFitness backend — 127.0.0.1:3004 published by the
+    # ts-fitness Tailscale sidecar in cn-fitness (host port 3004 → container
+    # port 80 on the frontend nginx). Tailnet ingress (fitness.lab.gn.al) is
+    # wired via cn-fitness's consul-register loop + VPS traefik-lab.
+    fitness:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1:3004"
