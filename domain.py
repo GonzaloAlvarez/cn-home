@@ -24,8 +24,10 @@ from pathlib import Path
 from urllib.request import urlretrieve
 
 DESCRIPTION = (
-    "ensure pfSense Unbound has a Domain Override pointing kaiser.lan at the "
-    "kaiser host IP (so *.kaiser.lan resolves via Traefik on that host)"
+    "ensure pfSense Unbound has Domain Overrides for one or more LAN zones. "
+    "With no CLI args, iterates LAN_OVERRIDES from .env (a space-separated "
+    "list of `zone=IP` pairs). With --domain/--ip, programs a single zone "
+    "(legacy single-zone mode)."
 )
 
 # ---------- self-bootstrap ------------------------------------------------ #
@@ -82,8 +84,49 @@ def _load_env_value(key: str) -> str | None:
     for line in env.read_text().splitlines():
         line = line.strip()
         if line.startswith(f"{key}="):
-            return line.split("=", 1)[1].strip()
+            v = line.split("=", 1)[1].strip()
+            # Strip surrounding quotes if any (LAN_OVERRIDES is often quoted).
+            if len(v) >= 2 and v[0] == v[-1] and v[0] in ('"', "'"):
+                v = v[1:-1]
+            return v
     return None
+
+
+def _load_lan_overrides() -> list[tuple[str, str]]:
+    """Parse LAN_OVERRIDES from .env — a space-separated `zone=IP` list.
+
+    Use for ZONE delegations (Domain Override): pfSense forwards every query
+    for *.zone to the listed IP, which must run a DNS server (e.g. kaiser
+    runs CoreDNS for *.kaiser.lan).
+    """
+    raw = _load_env_value("LAN_OVERRIDES") or ""
+    out: list[tuple[str, str]] = []
+    for tok in raw.split():
+        if "=" not in tok:
+            continue
+        z, ip = tok.split("=", 1)
+        z, ip = z.strip(), ip.strip()
+        if z and ip:
+            out.append((z, ip))
+    return out
+
+
+def _load_lan_hosts() -> list[tuple[str, str]]:
+    """Parse LAN_HOSTS from .env — a space-separated `fqdn=IP` list.
+
+    Use for SINGLE-NAME records (Host Override): pfSense answers the exact
+    FQDN with the listed IP itself. No DNS server needed at the target.
+    """
+    raw = _load_env_value("LAN_HOSTS") or ""
+    out: list[tuple[str, str]] = []
+    for tok in raw.split():
+        if "=" not in tok:
+            continue
+        fqdn, ip = tok.split("=", 1)
+        fqdn, ip = fqdn.strip(), ip.strip()
+        if fqdn and ip and "." in fqdn:
+            out.append((fqdn, ip))
+    return out
 
 
 # ---------- environment --------------------------------------------------- #
@@ -169,29 +212,86 @@ def login(session: requests.Session, base: str, user: str, password: str) -> Non
 
 
 def get_overrides(session: requests.Session, base: str) -> list[dict]:
-    """Parse domain-override rows from /services_unbound.php."""
+    """Parse domain-override rows from /services_unbound.php.
+
+    pfSense 2.7+ renders rows as <tr><td>domain&nbsp;</td><td>ip&nbsp;</td>...
+    with the edit link several tds later. The `&nbsp;` between the value and
+    the closing </td> is the easy thing to miss — without tolerating it, the
+    regex matches zero rows and the upserter unconditionally creates a new
+    row (silent duplication).
+    """
     r = session.get(f"{base}/services_unbound.php", verify=False, timeout=HTTP_TIMEOUT)
     r.raise_for_status()
     rows: list[dict] = []
     pattern = re.compile(
-        r"services_unbound_domainoverride_edit\.php\?id=(\d+).*?"
-        r"<td[^>]*>\s*([\w.\-]+)\s*</td>\s*"
-        r"<td[^>]*>\s*([\d.:a-fA-F]+)\s*</td>",
+        r"<tr[^>]*>\s*<td[^>]*>\s*([\w.\-]+)(?:&nbsp;|\s)*</td>\s*"
+        r"<td[^>]*>\s*([\d.:a-fA-F]+)(?:&nbsp;|\s)*</td>"
+        r".*?services_unbound_domainoverride_edit\.php\?id=(\d+)",
         re.DOTALL,
     )
     for m in pattern.finditer(r.text):
-        rows.append({"idx": int(m.group(1)), "domain": m.group(2), "ip": m.group(3)})
-
-    if not rows:
-        alt = re.compile(
-            r"<tr[^>]*>\s*<td[^>]*>\s*([\w.\-]+)\s*</td>\s*"
-            r"<td[^>]*>\s*([\d.:a-fA-F]+)\s*</td>"
-            r".*?services_unbound_domainoverride_edit\.php\?id=(\d+)",
-            re.DOTALL,
-        )
-        for m in alt.finditer(r.text):
-            rows.append({"idx": int(m.group(3)), "domain": m.group(1), "ip": m.group(2)})
+        rows.append({"idx": int(m.group(3)), "domain": m.group(1), "ip": m.group(2)})
     return rows
+
+
+def get_host_overrides(session: requests.Session, base: str) -> list[dict]:
+    """Parse host-override rows from /services_unbound.php.
+
+    Returns dicts with keys: idx, host, domain, ip. FQDN is host + "." + domain.
+    """
+    r = session.get(f"{base}/services_unbound.php", verify=False, timeout=HTTP_TIMEOUT)
+    r.raise_for_status()
+    rows: list[dict] = []
+    # Host overrides table: <td>host</td><td>parent_domain</td><td>ip</td>...edit?id=N
+    pattern = re.compile(
+        r"<tr[^>]*>\s*<td[^>]*>\s*([\w.\-]*)(?:&nbsp;|\s)*</td>\s*"
+        r"<td[^>]*>\s*([\w.\-]+)(?:&nbsp;|\s)*</td>\s*"
+        r"<td[^>]*>\s*([\d.:a-fA-F]+)(?:&nbsp;|\s)*</td>"
+        r".*?services_unbound_host_edit\.php\?id=(\d+)",
+        re.DOTALL,
+    )
+    for m in pattern.finditer(r.text):
+        rows.append({
+            "idx": int(m.group(4)),
+            "host": m.group(1),
+            "domain": m.group(2),
+            "ip": m.group(3),
+        })
+    return rows
+
+
+def upsert_host_override(session: requests.Session, base: str, *,
+                         fqdn: str, ip: str, idx: int | None,
+                         descr: str = "cn-home (managed by cn-home/domain.py)") -> None:
+    """Create or update a Host Override for an FQDN → IP."""
+    if "." not in fqdn:
+        sys.exit(f"FQDN {fqdn!r} has no dot — Host Override needs host.domain")
+    host, _, domain = fqdn.partition(".")
+    edit = f"{base}/services_unbound_host_edit.php"
+    if idx is not None:
+        edit += f"?id={idx}"
+    csrf_val = csrf(session, edit)
+    r = session.post(
+        edit,
+        data={
+            "__csrf_magic": csrf_val,
+            "host": host,
+            "domain": domain,
+            "ip": ip,
+            "descr": descr,
+            "save": "Save",
+        },
+        verify=False, timeout=HTTP_TIMEOUT, allow_redirects=True,
+    )
+    r.raise_for_status()
+    apply_url = f"{base}/services_unbound.php"
+    csrf_val = csrf(session, apply_url)
+    r = session.post(
+        apply_url,
+        data={"__csrf_magic": csrf_val, "apply": "Apply Changes"},
+        verify=False, timeout=HTTP_TIMEOUT, allow_redirects=True,
+    )
+    r.raise_for_status()
 
 
 def upsert_override(session: requests.Session, base: str, *,
@@ -279,14 +379,17 @@ def probe_dns(host: str, timeout: float = 2.0) -> bool:
 # ---------- main --------------------------------------------------------- #
 
 def main() -> int:
+    overrides_env = _load_lan_overrides()
     default_domain = _load_env_value("LAN_DOMAIN") or "kaiser.lan"
     default_ip = _load_env_value("KAISER_IP")
 
     p = argparse.ArgumentParser(description=DESCRIPTION)
-    p.add_argument("--domain", default=default_domain,
-                   help=f"DNS zone delegated to this host (default: {default_domain})")
-    p.add_argument("--ip", default=default_ip,
-                   help="target IP (default: KAISER_IP from .env)")
+    p.add_argument("--domain", default=None,
+                   help="single-zone mode: DNS zone (default: LAN_DOMAIN from .env). "
+                        "Ignored when LAN_OVERRIDES is set and no --ip is given.")
+    p.add_argument("--ip", default=None,
+                   help="single-zone mode: target IP (default: KAISER_IP from .env). "
+                        "Ignored when LAN_OVERRIDES is set and no --domain is given.")
     p.add_argument("--host", default=None,
                    help="pfSense host (default: cached, else prompt with detected gateway)")
     p.add_argument("--refresh-creds", action="store_true",
@@ -297,8 +400,22 @@ def main() -> int:
         CREDS_FILE.unlink()
         print(f"cleared cached creds at {CREDS_FILE}")
 
-    if not args.ip:
-        sys.exit("no target IP — set KAISER_IP in .env or pass --ip explicitly")
+    # Decide which zones to process:
+    #   - if user passed --domain or --ip, single-zone CLI mode
+    #   - elif LAN_OVERRIDES is non-empty, iterate it
+    #   - else fall back to LAN_DOMAIN/KAISER_IP single-zone (legacy)
+    if args.domain or args.ip:
+        domain = args.domain or default_domain
+        ip = args.ip or default_ip
+        if not ip:
+            sys.exit("no target IP — pass --ip or set KAISER_IP in .env")
+        zones = [(domain, ip)]
+    elif overrides_env:
+        zones = overrides_env
+    else:
+        if not default_ip:
+            sys.exit("no LAN_OVERRIDES and no KAISER_IP in .env — nothing to do")
+        zones = [(default_domain, default_ip)]
 
     cached = load_creds() or {}
     if args.host:
@@ -314,7 +431,9 @@ def main() -> int:
         host = creds["host"]
 
     base = f"https://{host}"
-    print(f"pfSense: {base} | desired: {args.domain} → {args.ip}")
+    print(f"pfSense: {base}")
+    for z, ip in zones:
+        print(f"  desired: {z} → {ip}")
 
     session = requests.Session()
     session.headers.update({"User-Agent": "cn-home/domain.py"})
@@ -322,18 +441,50 @@ def main() -> int:
     save_creds(host=host, user=creds["user"], password=creds["password"])
 
     overrides = get_overrides(session, base)
-    existing = next((o for o in overrides if o["domain"] == args.domain), None)
+    rc = 0
+    for domain, ip in zones:
+        existing = next((o for o in overrides if o["domain"] == domain), None)
+        if existing and existing["ip"] == ip:
+            print(f"✓ {domain} (zone) already → {ip} (no change)")
+            continue
+        try:
+            upsert_override(session, base,
+                            domain=domain, ip=ip,
+                            idx=existing["idx"] if existing else None)
+            verb = "updated" if existing else "created"
+            print(f"✓ {domain} (zone) → {ip} ({verb})")
+            overrides = get_overrides(session, base)
+        except SystemExit:
+            raise
+        except Exception as e:
+            print(f"✗ {domain} (zone) → {ip}: {e}", file=sys.stderr)
+            rc = 1
 
-    if existing and existing["ip"] == args.ip:
-        print(f"✓ {args.domain} already → {args.ip} (no change)")
-        return 0
-
-    upsert_override(session, base,
-                    domain=args.domain, ip=args.ip,
-                    idx=existing["idx"] if existing else None)
-    verb = "updated" if existing else "created"
-    print(f"✓ {args.domain} → {args.ip} ({verb})")
-    return 0
+    # ---- Host Overrides: single-FQDN A records (LAN_HOSTS) ----
+    hosts = _load_lan_hosts() if not (args.domain or args.ip) else []
+    if hosts:
+        host_overrides = get_host_overrides(session, base)
+        for fqdn, ip in hosts:
+            host, _, domain = fqdn.partition(".")
+            existing = next(
+                (h for h in host_overrides
+                 if h["host"] == host and h["domain"] == domain), None
+            )
+            if existing and existing["ip"] == ip:
+                print(f"✓ {fqdn} (host) already → {ip} (no change)")
+                continue
+            try:
+                upsert_host_override(session, base, fqdn=fqdn, ip=ip,
+                                     idx=existing["idx"] if existing else None)
+                verb = "updated" if existing else "created"
+                print(f"✓ {fqdn} (host) → {ip} ({verb})")
+                host_overrides = get_host_overrides(session, base)
+            except SystemExit:
+                raise
+            except Exception as e:
+                print(f"✗ {fqdn} (host) → {ip}: {e}", file=sys.stderr)
+                rc = 1
+    return rc
 
 
 if __name__ == "__main__":

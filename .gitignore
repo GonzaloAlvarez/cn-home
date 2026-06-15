@@ -5,3 +5,4 @@ virtualenv.pyz
 certs/root_ca.crt
 traefik-lan/dynamic.yml
 coredns/Corefile
+__pycache__/

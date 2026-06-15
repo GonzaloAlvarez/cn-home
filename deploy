@@ -64,8 +64,10 @@ echo "rendered traefik-lan/dynamic.yml + coredns/Corefile"
 # --- 1. pfSense domain override ------------------------------------------ #
 if ! $SKIP_DNS; then
   echo
-  echo "==> 1/4 pfSense Domain Override: ${LAN_DOMAIN} → ${KAISER_IP}"
-  python3 ./domain.py --domain "$LAN_DOMAIN" --ip "$KAISER_IP"
+  echo "==> 1/4 pfSense Domain Overrides (LAN_OVERRIDES, fallback LAN_DOMAIN→KAISER_IP)"
+  # No CLI args → domain.py reads LAN_OVERRIDES from .env (multi-zone) and
+  # falls back to LAN_DOMAIN/KAISER_IP when LAN_OVERRIDES is unset.
+  python3 ./domain.py
 fi
 
 deploy_repo() {
