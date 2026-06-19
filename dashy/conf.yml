@@ -142,6 +142,11 @@ sections:
   - name: LAN
     icon: fas fa-server
     items:
+      - title: Authentik (LAN)
+        description: SSO / OIDC provider on neptune.lan
+        url: https://auth.neptune.lan
+        icon: si-authentik
+        target: newtab
       - title: Home Assistant
         description: HA Supervised on homeiot.lan
         url: https://homeiot.lan
