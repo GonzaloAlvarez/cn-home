@@ -133,10 +133,6 @@ sections:
         url: https://fitness.kaiser.lan
         icon: fas fa-running
         target: newtab
-      - title: step-ca / Uptime Kuma
-        url: https://pki.lan
-        icon: fas fa-certificate
-        target: newtab
       - title: Vaultwarden (LAN)
         description: Passwords on the LAN
         url: https://passwords.lan
