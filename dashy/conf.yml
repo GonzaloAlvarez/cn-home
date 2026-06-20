@@ -106,13 +106,36 @@ sections:
         icon: si-nintendogamecube
         target: newtab
 
-  - name: Apps (kaiser.lan)
+  - name: Apps
     icon: fas fa-th-large
     items:
+      - title: Authentik (LAN)
+        description: SSO / OIDC provider on neptune.lan
+        url: https://auth.neptune.lan
+        icon: si-authentik
+        target: newtab
+      - title: Home Assistant
+        description: HA Supervised on homeiot.lan
+        url: https://homeiot.lan
+        icon: si-homeassistant
+        target: newtab
+      - title: pfSense
+        url: https://router.lan
+        icon: si-pfsense
+        target: newtab
       - title: SparkyFitness
         description: Fitness, nutrition, exercise, hydration tracker
         url: https://fitness.kaiser.lan
         icon: fas fa-running
+        target: newtab
+      - title: step-ca / Uptime Kuma
+        url: https://pki.lan
+        icon: fas fa-certificate
+        target: newtab
+      - title: Vaultwarden (LAN)
+        description: Passwords on the LAN
+        url: https://passwords.lan
+        icon: si-bitwarden
         target: newtab
 
   - name: Cluster (k8s.lan)
@@ -137,31 +160,4 @@ sections:
       - title: Filemanager (LAN)
         url: http://filemanager.k8s.lan
         icon: fas fa-folder-open
-        target: newtab
-
-  - name: LAN
-    icon: fas fa-server
-    items:
-      - title: Authentik (LAN)
-        description: SSO / OIDC provider on neptune.lan
-        url: https://auth.neptune.lan
-        icon: si-authentik
-        target: newtab
-      - title: Home Assistant
-        description: HA Supervised on homeiot.lan
-        url: https://homeiot.lan
-        icon: si-homeassistant
-        target: newtab
-      - title: pfSense
-        url: https://router.lan
-        icon: si-pfsense
-        target: newtab
-      - title: step-ca / Uptime Kuma
-        url: https://pki.lan
-        icon: fas fa-certificate
-        target: newtab
-      - title: Vaultwarden (LAN)
-        description: Passwords on the LAN
-        url: https://passwords.lan
-        icon: si-bitwarden
         target: newtab
