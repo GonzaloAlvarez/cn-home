@@ -20,6 +20,34 @@ http:
         scheme: https
         permanent: true
 
+    # ── Authentik forward-auth (LAN side) ────────────────────────────────
+    # Sends every request through the Authentik embedded outpost on
+    # neptune.lan before forwarding upstream. The outpost picks the right
+    # proxy provider from the request's Host header (configured providers:
+    # roms-lan, eventually more). If the user has a valid session, the
+    # outpost returns 200 with `Authorization: Basic <b64(user:pass)>` from
+    # the user's `romm_username` + `romm_password` group attributes; we
+    # forward that header to the upstream, which then sees the request as
+    # natively HTTP-Basic authenticated (works for any backend that
+    # honors `Authorization: Basic`, e.g. RomM's HybridAuthBackend).
+    #
+    # `tls.ca: /certs/root_ca.crt` makes traefik-lan trust step-ca for the
+    # outbound forward-auth call to auth.neptune.lan (which serves a
+    # step-ca leaf). The mount already exists for LEGO_CA_CERTIFICATES.
+    authentik-lan:
+      forwardAuth:
+        address: https://auth.neptune.lan/outpost.goauthentik.io/auth/traefik
+        trustForwardHeader: true
+        authResponseHeaders:
+          - X-authentik-username
+          - X-authentik-groups
+          - X-authentik-email
+          - X-authentik-name
+          - X-authentik-uid
+          - Authorization
+        tls:
+          ca: /certs/root_ca.crt
+
   routers:
     # Catch-all: any HTTP request hitting Traefik on :80 is bumped to :443.
     http-catchall:
@@ -142,9 +170,19 @@ http:
     # cn-roms — RomM ROM library. Backend is the ts-roms sidecar's
     # published 127.0.0.1:8080. Argosy on Android uses the tailnet path
     # (roms.lab.gn.al) instead — stock Android doesn't trust step-ca.
+    #
+    # Gated by Authentik via the `authentik-lan` forward-auth middleware:
+    # unauthenticated requests get a 302 to auth.neptune.lan; authenticated
+    # ones land at RomM with `Authorization: Basic <shared-user>` injected
+    # by the outpost. RomM authenticates the Basic header transparently
+    # (see /backend/handler/auth/hybrid_auth.py). The shared user lives in
+    # Authentik group attributes (media + infra-admins); see
+    # cn-authentik/setup-romm-proxy-sso.sh.
     roms:
       rule: "Host(`roms.${LAN_DOMAIN}`)"
       entryPoints: [websecure]
+      middlewares:
+        - authentik-lan
       service: roms
       tls:
         certResolver: stepca
