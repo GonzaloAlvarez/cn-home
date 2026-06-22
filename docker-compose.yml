@@ -31,6 +31,16 @@ services:
       - ./traefik-lan/dynamic.yml:/etc/traefik/dynamic.yml:ro
       - traefik_lan_acme:/acme
       - ./certs/root_ca.crt:/certs/root_ca.crt:ro
+    # Pre-resolve pki.lan so ACME renewal doesn't depend on the host's
+    # nameserver being reachable at container start. Under network_mode:
+    # host on this Docker version the container ships an empty resolv
+    # .conf and inherits no /etc/hosts from the host. A boot-time race
+    # where 10.1.0.1 wasn't yet reachable when traefik started caused
+    # renewal to silently fail on 2026-06-22, expiring every kaiser leaf
+    # cert 24h later and making blackbox-exporter report every *.kaiser
+    # .lan probe as DOWN even though the services themselves were up.
+    extra_hosts:
+      - "pki.lan:10.0.0.192"
     restart: unless-stopped
 
   dashy:
