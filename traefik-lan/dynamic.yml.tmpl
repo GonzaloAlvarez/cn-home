@@ -124,6 +124,15 @@ http:
       tls:
         certResolver: stepca
 
+    # FlareSolverr is a headless API (no UI) — this route exists only so the
+    # Dashy tile can run an up/down status probe against its health root.
+    flaresolverr:
+      rule: "Host(`flaresolverr.${LAN_DOMAIN}`)"
+      entryPoints: [websecure]
+      service: flaresolverr
+      tls:
+        certResolver: stepca
+
     prowlarr:
       rule: "Host(`prowlarr.${LAN_DOMAIN}`)"
       entryPoints: [websecure]
@@ -238,6 +247,10 @@ http:
       loadBalancer:
         servers:
           - url: "http://127.0.0.1:7878"
+    flaresolverr:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1:8191"
     prowlarr:
       loadBalancer:
         servers:
