@@ -154,11 +154,11 @@ http:
       tls:
         certResolver: stepca
 
-    # Audiobookshelf does its OWN auth (native Authentik OIDC, auto-launch) plus
-    # a local-admin fallback, so it is NOT behind the authentik-lan forward-auth
-    # gate: the gate is redundant for OIDC and would block the ABS mobile app
-    # (which authenticates directly via audiobookshelf://oauth). Provider:
-    # cn-authentik audiobookshelf-sso (oauth2), bound to the media group.
+    # Audiobookshelf is NOT Authentik-integrated — it uses its own local login
+    # and is intentionally ungated. ABS supports only local + native OIDC (no
+    # reverse-proxy header/Basic auth), and its single OIDC issuer isn't reachable
+    # from a plain-LAN browser, so SSO was dropped in favor of standalone local
+    # auth. Keep ABS's own username/password in sync with Authentik manually.
     audiobookshelf:
       rule: "Host(`audiobookshelf.${LAN_DOMAIN}`)"
       entryPoints: [websecure]
