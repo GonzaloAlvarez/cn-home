@@ -118,6 +118,25 @@ sections:
         icon: si-nintendogamecube
         target: newtab
 
+  - name: Books (kaiser.lan)
+    icon: fas fa-book
+    items:
+      - title: Calibre-Web
+        description: Ebook library + reader + send-to-Kindle
+        url: https://calibre.kaiser.lan
+        icon: si-calibreweb
+        target: newtab
+      - title: Shelfmark
+        description: Search + download ebooks (→ Calibre-Web)
+        url: https://shelfmark.kaiser.lan
+        icon: si-bookstack
+        target: newtab
+      - title: Audiobookshelf
+        description: Audiobook library + web/mobile playback
+        url: https://audiobookshelf.kaiser.lan
+        icon: si-audiobookshelf
+        target: newtab
+
   - name: Apps
     icon: fas fa-th-large
     items:

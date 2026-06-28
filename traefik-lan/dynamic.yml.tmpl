@@ -133,6 +133,28 @@ http:
       tls:
         certResolver: stepca
 
+    # cn-books stack
+    shelfmark:
+      rule: "Host(`shelfmark.${LAN_DOMAIN}`)"
+      entryPoints: [websecure]
+      service: shelfmark
+      tls:
+        certResolver: stepca
+
+    calibre:
+      rule: "Host(`calibre.${LAN_DOMAIN}`)"
+      entryPoints: [websecure]
+      service: calibre
+      tls:
+        certResolver: stepca
+
+    audiobookshelf:
+      rule: "Host(`audiobookshelf.${LAN_DOMAIN}`)"
+      entryPoints: [websecure]
+      service: audiobookshelf
+      tls:
+        certResolver: stepca
+
     prowlarr:
       rule: "Host(`prowlarr.${LAN_DOMAIN}`)"
       entryPoints: [websecure]
@@ -251,6 +273,18 @@ http:
       loadBalancer:
         servers:
           - url: "http://127.0.0.1:8191"
+    shelfmark:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1:8084"
+    calibre:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1:8092"
+    audiobookshelf:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1:13378"
     prowlarr:
       loadBalancer:
         servers:
