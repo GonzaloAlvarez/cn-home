@@ -133,10 +133,14 @@ http:
       tls:
         certResolver: stepca
 
-    # cn-books stack
+    # cn-books stack — gated by Authentik forward-auth (authentik-lan).
+    # Authentik forwards X-authentik-username to the upstream; Shelfmark +
+    # Calibre-Web auto-login from it, Audiobookshelf is gated (own login behind).
     shelfmark:
       rule: "Host(`shelfmark.${LAN_DOMAIN}`)"
       entryPoints: [websecure]
+      middlewares:
+        - authentik-lan
       service: shelfmark
       tls:
         certResolver: stepca
@@ -144,6 +148,8 @@ http:
     calibre:
       rule: "Host(`calibre.${LAN_DOMAIN}`)"
       entryPoints: [websecure]
+      middlewares:
+        - authentik-lan
       service: calibre
       tls:
         certResolver: stepca
@@ -151,6 +157,8 @@ http:
     audiobookshelf:
       rule: "Host(`audiobookshelf.${LAN_DOMAIN}`)"
       entryPoints: [websecure]
+      middlewares:
+        - authentik-lan
       service: audiobookshelf
       tls:
         certResolver: stepca
