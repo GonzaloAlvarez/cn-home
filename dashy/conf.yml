@@ -157,6 +157,15 @@ sections:
         url: https://homeiot.lan
         icon: si-homeassistant
         target: newtab
+      - title: Outline (LAN)
+        description: Knowledge base wiki on neptune.lan
+        # Canonical URL — resolves to neptune via pfSense split-horizon on the
+        # LAN (outline.neptune.lan 302-redirects here).
+        url: https://outline.lab.gn.al
+        icon: fas fa-book-open
+        target: newtab
+        statusCheck: true
+        statusCheckUrl: https://outline.lab.gn.al/_health
       - title: pfSense
         url: https://router.lan
         icon: si-pfsense
