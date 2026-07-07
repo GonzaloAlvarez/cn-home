@@ -43,12 +43,14 @@ services:
       - "pki.lan:10.0.0.192"
     restart: unless-stopped
 
-  dashy:
-    image: lissy93/dashy:latest
+  # LAN homepage — dynacat (glance fork). Host port 8085 preserved so the
+  # traefik-lan `home` router (→ http://127.0.0.1:8085) is unchanged.
+  dynacat:
+    image: panonim/dynacat:latest
     ports:
       - "127.0.0.1:8085:8080"
     volumes:
-      - ./dashy/conf.yml:/app/user-data/conf.yml:ro
+      - ./dynacat/dynacat.yml:/app/config/dynacat.yml:ro
     restart: unless-stopped
 
 volumes:

@@ -1,0 +1,134 @@
+# cn-home LAN homepage — dynacat (glance fork) at https://home.kaiser.lan
+# Mirrors the tailnet glance layout (home.lab.gn.al) but with LAN links and a
+# light theme so it's visually distinct from the dark tailnet version.
+# Deploy: git pull on kaiser + `docker compose -p cn-home up -d --force-recreate dynacat`
+# (single-file bind mount keeps the old inode after git pull → hot-reload won't
+# see edits without --force-recreate).
+
+theme:                      # light theme — distinct from the dark tailnet glance
+  light: true
+  background-color: 0 0 95
+  primary-color: 0 0 10
+  negative-color: 0 90 50
+
+server:
+  host: 0.0.0.0             # explicit so the 127.0.0.1:8085->8080 mapping is reachable
+  port: 8080
+
+pages:
+  - name: Home
+    hide-desktop-navigation: true
+    columns:
+      # ── LEFT (side panel) ────────────────────────────────────────────────
+      - size: small
+        widgets:
+          - type: calendar
+          - type: weather
+            location: New York, United States
+            units: metric
+
+      # ── CENTER ───────────────────────────────────────────────────────────
+      - size: full
+        widgets:
+          - type: search
+            search-engine: duckduckgo
+            new-tab: true
+
+          # Bookmarks — plain text, colored group headers, no per-link icons.
+          # Same organization + LAN URLs as the previous dashy homepage.
+          - type: bookmarks
+            groups:
+              - title: Observability
+                color: 280 70 50
+                links:
+                  - { title: Grafana,      url: https://grafana.kaiser.lan }
+                  - { title: Prometheus,   url: https://prometheus.kaiser.lan }
+                  - { title: Alertmanager, url: https://alertmanager.kaiser.lan }
+                  - { title: Loki,         url: https://loki.kaiser.lan }
+                  - { title: Portainer,    url: https://portainer.kaiser.lan }
+              - title: Torrent
+                color: 340 70 50
+                links:
+                  - { title: qBittorrent,  url: https://torrent.kaiser.lan }
+                  - { title: Prowlarr,     url: https://prowlarr.kaiser.lan }
+                  - { title: Sonarr,       url: https://sonarr.kaiser.lan }
+                  - { title: Radarr,       url: https://radarr.kaiser.lan }
+                  - { title: Lidarr,       url: https://lidarr.kaiser.lan }
+                  - { title: Readarr,      url: https://readarr.kaiser.lan }
+                  - { title: FlareSolverr, url: https://flaresolverr.kaiser.lan }
+              - title: Media
+                color: 160 70 50
+                links:
+                  - { title: Jellyfin, url: https://jellyfin.kaiser.lan }
+                  - { title: RomM,     url: https://roms.kaiser.lan }
+                  - { title: Raid NAS, url: https://raidnas.kaiser.lan }
+              - title: Books
+                color: 230 70 50
+                links:
+                  - { title: Audiobookshelf, url: https://audiobookshelf.kaiser.lan }
+                  - { title: Calibre-Web,    url: https://calibre.kaiser.lan }
+                  - { title: Shelfmark,      url: https://shelfmark.kaiser.lan }
+              - title: Apps
+                color: 200 70 50
+                links:
+                  - { title: Authentik,      url: https://auth.neptune.lan }
+                  - { title: Firefox Sync,   url: https://accounts.fxa.neptune.lan }
+                  - { title: Home Assistant, url: https://homeiot.lan }
+                  - { title: Outline,        url: https://outline.lab.gn.al }
+                  - { title: Vaultwarden,    url: https://passwords.lan }
+                  - { title: SparkyFitness,  url: https://fitness.kaiser.lan }
+                  - { title: pfSense,        url: https://router.lan }
+              - title: Cluster
+                color: 10 70 50
+                links:
+                  - { title: Headlamp,    url: http://cluster.k8s.lan }
+                  - { title: Longhorn,    url: http://longhorn.k8s.lan }
+                  - { title: NetBox,      url: http://netbox.k8s.lan }
+                  - { title: Filemanager, url: http://filemanager.k8s.lan }
+                  - { title: FreshRSS,    url: http://freshrss.k8s.lan }
+
+          # Status — curated set with clean unauthenticated health endpoints.
+          # allow-insecure: true everywhere (this container doesn't trust the
+          # step-ca root that signs every *.kaiser.lan / .lan / .neptune.lan leaf).
+          # k8s cluster + Authentik-gated apps are intentionally bookmarks-only.
+          - type: monitor
+            title: Status
+            cache: 1m
+            sites:
+              - { title: Grafana,        url: https://grafana.kaiser.lan,        icon: di:grafana,        allow-insecure: true }
+              - { title: Prometheus,     url: https://prometheus.kaiser.lan,     icon: di:prometheus,     allow-insecure: true }
+              - { title: Alertmanager,   url: https://alertmanager.kaiser.lan,   icon: di:prometheus,     allow-insecure: true }
+              - { title: Portainer,      url: https://portainer.kaiser.lan,      icon: di:portainer,      allow-insecure: true }
+              - { title: qBittorrent,    url: https://torrent.kaiser.lan,        icon: di:qbittorrent,    allow-insecure: true }
+              - { title: Prowlarr,       url: https://prowlarr.kaiser.lan,       icon: di:prowlarr,       allow-insecure: true, check-url: https://prowlarr.kaiser.lan/ping }
+              - { title: Sonarr,         url: https://sonarr.kaiser.lan,         icon: di:sonarr,         allow-insecure: true, check-url: https://sonarr.kaiser.lan/ping }
+              - { title: Radarr,         url: https://radarr.kaiser.lan,         icon: di:radarr,         allow-insecure: true, check-url: https://radarr.kaiser.lan/ping }
+              - { title: Lidarr,         url: https://lidarr.kaiser.lan,         icon: di:lidarr,         allow-insecure: true, check-url: https://lidarr.kaiser.lan/ping }
+              - { title: Readarr,        url: https://readarr.kaiser.lan,        icon: di:readarr,        allow-insecure: true, check-url: https://readarr.kaiser.lan/ping }
+              - { title: FlareSolverr,   url: https://flaresolverr.kaiser.lan,   icon: di:flaresolverr,   allow-insecure: true }
+              - { title: Jellyfin,       url: https://jellyfin.kaiser.lan,       icon: di:jellyfin,       allow-insecure: true }
+              - { title: RomM,           url: https://roms.kaiser.lan,           icon: di:romm,           allow-insecure: true }
+              - { title: Raid NAS,       url: https://raidnas.kaiser.lan,        icon: di:synology,       allow-insecure: true }
+              - { title: Audiobookshelf, url: https://audiobookshelf.kaiser.lan, icon: di:audiobookshelf, allow-insecure: true }
+              - { title: Calibre-Web,    url: https://calibre.kaiser.lan,        icon: di:calibre-web,    allow-insecure: true }
+              - { title: Shelfmark,      url: https://shelfmark.kaiser.lan,      icon: mdi:book-search,   allow-insecure: true }
+              - { title: Authentik,      url: https://auth.neptune.lan,          icon: di:authentik,      allow-insecure: true }
+              - { title: Firefox Sync,   url: https://accounts.fxa.neptune.lan,  icon: di:firefox,        allow-insecure: true, check-url: https://accounts.fxa.neptune.lan/.well-known/fxa-client-configuration }
+              - { title: Home Assistant, url: https://homeiot.lan,               icon: di:home-assistant, allow-insecure: true }
+              - { title: Outline,        url: https://outline.lab.gn.al,         icon: di:outline,        allow-insecure: true, check-url: https://outline.lab.gn.al/_health }
+              - { title: Vaultwarden,    url: https://passwords.lan,             icon: di:vaultwarden,    allow-insecure: true }
+              - { title: SparkyFitness,  url: https://fitness.kaiser.lan,        icon: mdi:dumbbell,      allow-insecure: true }
+              - { title: pfSense,        url: https://router.lan,                icon: di:pfsense,        allow-insecure: true }
+
+      # ── RIGHT (side panel) ───────────────────────────────────────────────
+      - size: small
+        widgets:
+          - type: markets
+            markets:
+              - { symbol: SPY,   name: S&P 500 }
+              - { symbol: AXON,  name: Axon }
+              - { symbol: COF,   name: Capital One }
+              - { symbol: AAPL,  name: Apple }
+              - { symbol: AMZN,  name: Amazon }
+              - { symbol: META,  name: Meta }
+              - { symbol: GOOGL, name: Google }
