@@ -95,8 +95,8 @@ pages:
             title: Status
             cache: 1m
             sites:
-              - { title: Grafana,        url: https://grafana.kaiser.lan,        icon: di:grafana,        allow-insecure: true }
-              - { title: Prometheus,     url: https://prometheus.kaiser.lan,     icon: di:prometheus,     allow-insecure: true }
+              - { title: Grafana,        url: https://grafana.kaiser.lan,        icon: di:grafana,        allow-insecure: true, alt-status-codes: [302] }
+              - { title: Prometheus,     url: https://prometheus.kaiser.lan,     icon: di:prometheus,     allow-insecure: true, alt-status-codes: [302] }
               - { title: Alertmanager,   url: https://alertmanager.kaiser.lan,   icon: di:prometheus,     allow-insecure: true }
               - { title: Portainer,      url: https://portainer.kaiser.lan,      icon: di:portainer,      allow-insecure: true }
               - { title: qBittorrent,    url: https://torrent.kaiser.lan,        icon: di:qbittorrent,    allow-insecure: true }
@@ -106,13 +106,13 @@ pages:
               - { title: Lidarr,         url: https://lidarr.kaiser.lan,         icon: di:lidarr,         allow-insecure: true, check-url: https://lidarr.kaiser.lan/ping }
               - { title: Readarr,        url: https://readarr.kaiser.lan,        icon: di:readarr,        allow-insecure: true, check-url: https://readarr.kaiser.lan/ping }
               - { title: FlareSolverr,   url: https://flaresolverr.kaiser.lan,   icon: di:flaresolverr,   allow-insecure: true }
-              - { title: Jellyfin,       url: https://jellyfin.kaiser.lan,       icon: di:jellyfin,       allow-insecure: true }
-              - { title: RomM,           url: https://roms.kaiser.lan,           icon: di:romm,           allow-insecure: true }
+              - { title: Jellyfin,       url: https://jellyfin.kaiser.lan,       icon: di:jellyfin,       allow-insecure: true, alt-status-codes: [302] }
+              - { title: RomM,           url: https://roms.kaiser.lan,           icon: di:romm,           allow-insecure: true, alt-status-codes: [302] }
               - { title: Raid NAS,       url: https://raidnas.kaiser.lan,        icon: di:synology,       allow-insecure: true }
               - { title: Audiobookshelf, url: https://audiobookshelf.kaiser.lan, icon: di:audiobookshelf, allow-insecure: true }
-              - { title: Calibre-Web,    url: https://calibre.kaiser.lan,        icon: di:calibre-web,    allow-insecure: true }
-              - { title: Shelfmark,      url: https://shelfmark.kaiser.lan,      icon: mdi:book-search,   allow-insecure: true }
-              - { title: Authentik,      url: https://auth.neptune.lan,          icon: di:authentik,      allow-insecure: true }
+              - { title: Calibre-Web,    url: https://calibre.kaiser.lan,        icon: di:calibre-web,    allow-insecure: true, alt-status-codes: [302] }
+              - { title: Shelfmark,      url: https://shelfmark.kaiser.lan,      icon: mdi:book-search,   allow-insecure: true, alt-status-codes: [302] }
+              - { title: Authentik,      url: https://auth.neptune.lan,          icon: di:authentik,      allow-insecure: true, alt-status-codes: [302] }
               - { title: Firefox Sync,   url: https://accounts.fxa.neptune.lan,  icon: di:firefox,        allow-insecure: true, check-url: https://accounts.fxa.neptune.lan/.well-known/fxa-client-configuration }
               - { title: Home Assistant, url: https://homeiot.lan,               icon: di:home-assistant, allow-insecure: true }
               - { title: Outline,        url: https://outline.lab.gn.al,         icon: di:outline,        allow-insecure: true, check-url: https://outline.lab.gn.al/_health }
