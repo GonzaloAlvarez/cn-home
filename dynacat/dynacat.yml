@@ -59,6 +59,7 @@ pages:
               - title: Media
                 color: 160 70 50
                 links:
+                  - { title: Immich,   url: https://photos.lab.gn.al }
                   - { title: Jellyfin, url: https://jellyfin.kaiser.lan }
                   - { title: RomM,     url: https://roms.kaiser.lan }
                   - { title: Raid NAS, url: https://raidnas.kaiser.lan }
@@ -106,6 +107,7 @@ pages:
               - { title: Lidarr,         url: https://lidarr.kaiser.lan,         icon: di:lidarr,         allow-insecure: true, check-url: https://lidarr.kaiser.lan/ping }
               - { title: Readarr,        url: https://readarr.kaiser.lan,        icon: di:readarr,        allow-insecure: true, check-url: https://readarr.kaiser.lan/ping }
               - { title: FlareSolverr,   url: https://flaresolverr.kaiser.lan,   icon: di:flaresolverr,   allow-insecure: true }
+              - { title: Immich,         url: https://photos.lab.gn.al,          icon: di:immich,         allow-insecure: true, check-url: https://photos.lab.gn.al/api/server/ping }
               - { title: Jellyfin,       url: https://jellyfin.kaiser.lan,       icon: di:jellyfin,       allow-insecure: true, alt-status-codes: [302] }
               - { title: RomM,           url: https://roms.kaiser.lan,           icon: di:romm,           allow-insecure: true, alt-status-codes: [302] }
               - { title: Raid NAS,       url: https://raidnas.kaiser.lan,        icon: di:synology,       allow-insecure: true }
