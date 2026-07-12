@@ -241,6 +241,30 @@ http:
       tls:
         certResolver: stepca
 
+    # cn-librechat — LibreChat (AI chat, AWS Bedrock backend). Backend is the
+    # ts-librechat sidecar's published 127.0.0.1:3080. Native OIDC gating is
+    # done by LibreChat itself (Authentik), NOT the authentik-lan forward-auth
+    # middleware — so no middleware here.
+    #
+    # Canonical URL is chat.lab.gn.al (baked into DOMAIN_SERVER + the OIDC
+    # callback). Both hostnames route to the same backend and LibreChat
+    # self-canonicalizes — same shape as cn-outline's outline-lan/outline-lab.
+    # chat.lab.gn.al gets a step-ca leaf here for LAN clients (pfSense
+    # split-horizon override chat.lab.gn.al → kaiser validates HTTP-01);
+    # tailnet clients hit the VPS traefik-lab LE wildcard via consul-register.
+    chat-lan:
+      rule: "Host(`chat.${LAN_DOMAIN}`)"
+      entryPoints: [websecure]
+      service: chat
+      tls:
+        certResolver: stepca
+    chat-lab:
+      rule: "Host(`chat.lab.gn.al`)"
+      entryPoints: [websecure]
+      service: chat
+      tls:
+        certResolver: stepca
+
   services:
     home:
       loadBalancer:
@@ -345,3 +369,14 @@ http:
       loadBalancer:
         servers:
           - url: "http://127.0.0.1:3004"
+
+    # cn-librechat LibreChat backend — 127.0.0.1:3080 published by the
+    # ts-librechat Tailscale sidecar in cn-librechat. passHostHeader so
+    # LibreChat sees the real Host (needed for OIDC/canonical handling).
+    # Tailnet ingress (chat.lab.gn.al) is wired via cn-librechat's
+    # consul-register loop + VPS traefik-lab.
+    chat:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+          - url: "http://127.0.0.1:3080"
