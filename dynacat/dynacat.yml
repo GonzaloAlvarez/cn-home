@@ -79,6 +79,7 @@ pages:
                   - { title: Vaultwarden,    url: https://passwords.lan }
                   - { title: SparkyFitness,  url: https://fitness.kaiser.lan }
                   - { title: LibreChat,      url: https://chat.kaiser.lan }
+                  - { title: Exercises,      url: https://exercises.kaiser.lan }
                   - { title: pfSense,        url: https://router.lan }
               - title: Cluster
                 color: 10 70 50
@@ -122,6 +123,7 @@ pages:
               - { title: Vaultwarden,    url: https://passwords.lan,             icon: di:vaultwarden,    allow-insecure: true }
               - { title: SparkyFitness,  url: https://fitness.kaiser.lan,        icon: mdi:dumbbell,      allow-insecure: true }
               - { title: LibreChat,      url: https://chat.kaiser.lan,           icon: mdi:robot-happy,   allow-insecure: true, alt-status-codes: [302] }
+              - { title: Exercises,      url: https://exercises.kaiser.lan,      icon: mdi:weight-lifter, allow-insecure: true }
               - { title: pfSense,        url: https://router.lan,                icon: di:pfsense,        allow-insecure: true }
 
       # ── RIGHT (side panel) ───────────────────────────────────────────────

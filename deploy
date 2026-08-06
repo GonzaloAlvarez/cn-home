@@ -47,6 +47,17 @@ SSH_OPTS=(
   -o StrictHostKeyChecking=no
   -i "$KAISER_SSH_KEY"
 )
+# Away-from-home (CLAUDE.md §5.4): route ssh/rsync/scp through the
+# cn-socksnode SOCKS proxy by exporting e.g.
+#   KAISER_SSH_PROXY="nc -x 127.0.0.1:1055 %h %p"
+# Implemented via a throwaway ssh config referenced with -F (a bare
+# -o ProxyCommand=... would shatter when rsync -e flattens ${SSH_OPTS[*]}).
+if [ -n "${KAISER_SSH_PROXY:-}" ]; then
+  _proxy_cfg="$(mktemp)"
+  trap 'rm -f "$_proxy_cfg"' EXIT
+  printf 'Host *\n  ProxyCommand %s\n' "$KAISER_SSH_PROXY" > "$_proxy_cfg"
+  SSH_OPTS+=(-F "$_proxy_cfg")
+fi
 RSYNC_OPTS=(
   -a --delete
   --exclude .env

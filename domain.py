@@ -45,8 +45,8 @@ if not _in_venv:
     subprocess.run([sys.executable, str(_pyz), str(_VENV)], check=True)
     _pyz.unlink(missing_ok=True)
     _vpy = str(_VENV / "bin" / "python")
-    print("Installing 'requests' into venv...", file=sys.stderr)
-    subprocess.run([_vpy, "-m", "pip", "install", "--quiet", "requests"], check=True)
+    print("Installing 'requests[socks]' into venv...", file=sys.stderr)
+    subprocess.run([_vpy, "-m", "pip", "install", "--quiet", "requests[socks]"], check=True)
     os.execv(_vpy, [_vpy, os.path.abspath(__file__)] + sys.argv[1:])
     sys.exit(0)
 
@@ -437,6 +437,13 @@ def main() -> int:
 
     session = requests.Session()
     session.headers.update({"User-Agent": "cn-home/domain.py"})
+    # Away-from-home (CLAUDE.md §5.4): reach pfSense through the cn-socksnode
+    # proxy by exporting PF_SOCKS_PROXY=socks5h://127.0.0.1:1055. Scoped to
+    # this session only (a global ALL_PROXY would break the pip bootstrap).
+    pf_proxy = os.environ.get("PF_SOCKS_PROXY")
+    if pf_proxy:
+        print(f"routing pfSense calls via {pf_proxy}")
+        session.proxies = {"http": pf_proxy, "https": pf_proxy}
     login(session, base, creds["user"], creds["password"])
     save_creds(host=host, user=creds["user"], password=creds["password"])
 
