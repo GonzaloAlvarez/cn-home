@@ -52,7 +52,7 @@ You'll be asked for `ADMIN_EMAIL` and confirm the LAN topology defaults. The scr
 
 What `./deploy` does, in order:
 
-1. `python3 ./domain.py` — programs pfSense Unbound Domain Override for `${LAN_DOMAIN} → ${KAISER_IP}` (single override covers the whole zone). Caches creds at `.pf-creds` (chmod 600); prompts once.
+1. `python3 ./domain.py` — programs pfSense Unbound Domain Override for `${LAN_DOMAIN} → ${KAISER_IP}` (single override covers the whole zone). Caches creds at `.pf-creds` (chmod 600); prompts once. The creds are also Kauket-managed as `pfsense.admin_creds` (`kauket get pfsense.admin_creds` installs this repo's `.pf-creds` on a fresh machine).
 2. `rsync` this repo to `${KAISER_SSH}:${KAISER_REMOTE_DIR}` (skipping `.env`, `.pf-creds`, `.git`, the throwaway venv).
 3. `scp` the `.env` separately so it's not in any rsync log.
 4. `ssh kaiser docker compose -p cn-home up -d`.
