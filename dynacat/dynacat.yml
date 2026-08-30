@@ -125,6 +125,7 @@ pages:
               - { title: LibreChat,      url: https://chat.kaiser.lan,           icon: mdi:robot-happy,   allow-insecure: true, alt-status-codes: [302] }
               - { title: Exercises,      url: https://exercises.kaiser.lan,      icon: mdi:weight-lifter, allow-insecure: true }
               - { title: pfSense,        url: https://router.lan,                icon: di:pfsense,        allow-insecure: true }
+              - { title: Technitium DNS, url: https://dns.pki.lan,               icon: mdi:dns,           allow-insecure: true }
 
       # ── RIGHT (side panel) ───────────────────────────────────────────────
       - size: small
