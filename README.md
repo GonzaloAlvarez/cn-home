@@ -13,7 +13,7 @@ Sibling repos route traffic through this Traefik by binding their services on `1
 ```
 LAN
 ├── pfSense 10.1.0.1                Unbound override:  kaiser.lan → 10.1.1.140
-├── pki.lan 10.0.0.192               step-ca (HTTP-01 ACME, root CA at /cert/ca.crt)
+├── pki.lan 10.0.0.250               step-ca (HTTP-01 ACME, root CA at /cert/ca.crt)
 └── kaiser.lan 10.1.1.140
     └── cn-home  (this repo)
         ├── traefik-lan (network_mode: host, :80/:443, step-ca ACME)

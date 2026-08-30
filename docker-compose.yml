@@ -40,7 +40,7 @@ services:
     # cert 24h later and making blackbox-exporter report every *.kaiser
     # .lan probe as DOWN even though the services themselves were up.
     extra_hosts:
-      - "pki.lan:10.0.0.192"
+      - "pki.lan:10.0.0.250"
     restart: unless-stopped
 
   # LAN homepage — dynacat (glance fork). Host port 8085 preserved so the
