@@ -24,12 +24,12 @@ http:
     # Sends every request through the Authentik embedded outpost on
     # neptune.lan before forwarding upstream. The outpost picks the right
     # proxy provider from the request's Host header (configured providers:
-    # roms-lan, eventually more). If the user has a valid session, the
-    # outpost returns 200 with `Authorization: Basic <b64(user:pass)>` from
-    # the user's `romm_username` + `romm_password` group attributes; we
-    # forward that header to the upstream, which then sees the request as
-    # natively HTTP-Basic authenticated (works for any backend that
-    # honors `Authorization: Basic`, e.g. RomM's HybridAuthBackend).
+    # shelfmark-lan, calibre-lan — see cn-authentik/setup-books-proxy-sso.sh).
+    # If the user has a valid session the outpost returns 200 (plus any
+    # `Authorization: Basic` it was told to inject from group attributes);
+    # we forward those headers upstream. NOTE: this gate answers non-browser
+    # clients with an Authentik HTML page — apps with native/companion
+    # clients (RomM + Argosy) must use native OIDC instead.
     #
     # `tls.ca: /certs/root_ca.crt` makes traefik-lan trust step-ca for the
     # outbound forward-auth call to auth.neptune.lan (which serves a
@@ -47,6 +47,17 @@ http:
           - Authorization
         tls:
           ca: /certs/root_ca.crt
+
+    # ── RomM canonical-URL redirect ──────────────────────────────────────
+    # roms.kaiser.lan → roms.lab.gn.al (301). RomM has ONE origin: its OIDC
+    # redirect URI is static, the OAuth state lives in a host-scoped cookie
+    # and the Argosy pairing QR is built from window.location.origin. Rendered
+    # by envsubst scoped to ${LAN_DOMAIN}, so Traefik's ${1} survives.
+    roms-canonical:
+      redirectRegex:
+        regex: "^https://roms\\.${LAN_DOMAIN}/(.*)"
+        replacement: "https://roms.lab.gn.al/${1}"
+        permanent: true
 
   routers:
     # Catch-all: any HTTP request hitting Traefik on :80 is bumped to :443.
@@ -210,21 +221,27 @@ http:
         certResolver: stepca
 
     # cn-roms — RomM ROM library. Backend is the ts-roms sidecar's
-    # published 127.0.0.1:8080. Argosy on Android uses the tailnet path
-    # (roms.lab.gn.al) instead — stock Android doesn't trust step-ca.
+    # published 127.0.0.1:8083. Canonical URL is roms.lab.gn.al (baked into
+    # ROMM_BASE_URL + the single OIDC callback in cn-roms); RomM gates
+    # browsers itself via native Authentik OIDC and companion apps (Argosy)
+    # via Client API Tokens — no forward-auth here any more.
     #
-    # Gated by Authentik via the `authentik-lan` forward-auth middleware:
-    # unauthenticated requests get a 302 to auth.neptune.lan; authenticated
-    # ones land at RomM with `Authorization: Basic <shared-user>` injected
-    # by the outpost. RomM authenticates the Basic header transparently
-    # (see /backend/handler/auth/hybrid_auth.py). The shared user lives in
-    # Authentik group attributes (media + infra-admins); see
-    # cn-authentik/setup-romm-proxy-sso.sh.
+    # Same split-horizon shape as chat: roms.lab.gn.al gets a step-ca leaf
+    # here for LAN clients (Technitium record + pfSense host override
+    # roms.lab.gn.al → kaiser validate HTTP-01); tailnet clients hit the VPS
+    # traefik-lab (LE wildcard) via cn-roms's consul-register. Argosy on
+    # Android must use the tailnet path — stock Android doesn't trust step-ca.
     roms:
       rule: "Host(`roms.${LAN_DOMAIN}`)"
       entryPoints: [websecure]
       middlewares:
-        - authentik-lan
+        - roms-canonical
+      service: noop@internal
+      tls:
+        certResolver: stepca
+    roms-lab:
+      rule: "Host(`roms.lab.gn.al`)"
+      entryPoints: [websecure]
       service: roms
       tls:
         certResolver: stepca
@@ -375,10 +392,12 @@ http:
     # cn-roms RomM backend — 127.0.0.1:8083 published by the ts-roms
     # Tailscale sidecar in cn-roms (host port 8083, container port 8080;
     # cn-bittorrent's qbittorrent already owns 127.0.0.1:8080 on this
-    # host). Tailnet ingress (roms.lab.gn.al) is wired via cn-roms's
+    # host). passHostHeader so RomM sees roms.lab.gn.al (canonical/OIDC
+    # handling). Tailnet ingress (roms.lab.gn.al) is wired via cn-roms's
     # consul-register loop + VPS traefik-lab.
     roms:
       loadBalancer:
+        passHostHeader: true
         servers:
           - url: "http://127.0.0.1:8083"
 

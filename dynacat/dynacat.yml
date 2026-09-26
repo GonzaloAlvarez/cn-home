@@ -61,7 +61,7 @@ pages:
                 links:
                   - { title: Immich,   url: https://photos.lab.gn.al }
                   - { title: Jellyfin, url: https://jellyfin.kaiser.lan }
-                  - { title: RomM,     url: https://roms.kaiser.lan }
+                  - { title: RomM,     url: https://roms.lab.gn.al }
                   - { title: Raid NAS, url: https://raidnas.kaiser.lan }
               - title: Books
                 color: 230 70 50
@@ -111,7 +111,7 @@ pages:
               - { title: FlareSolverr,   url: https://flaresolverr.kaiser.lan,   icon: di:flaresolverr,   allow-insecure: true }
               - { title: Immich,         url: https://photos.lab.gn.al,          icon: di:immich,         allow-insecure: true, check-url: https://photos.lab.gn.al/api/server/ping }
               - { title: Jellyfin,       url: https://jellyfin.kaiser.lan,       icon: di:jellyfin,       allow-insecure: true, alt-status-codes: [302] }
-              - { title: RomM,           url: https://roms.kaiser.lan,           icon: di:romm,           allow-insecure: true, alt-status-codes: [302] }
+              - { title: RomM,           url: https://roms.lab.gn.al,            icon: di:romm,           allow-insecure: true, check-url: https://roms.lab.gn.al/api/heartbeat }
               - { title: Raid NAS,       url: https://raidnas.kaiser.lan,        icon: di:synology,       allow-insecure: true }
               - { title: Audiobookshelf, url: https://audiobookshelf.kaiser.lan, icon: di:audiobookshelf, allow-insecure: true }
               - { title: Calibre-Web,    url: https://calibre.kaiser.lan,        icon: di:calibre-web,    allow-insecure: true, alt-status-codes: [302] }
