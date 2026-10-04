@@ -42,6 +42,7 @@ pages:
                 color: 280 70 50
                 links:
                   - { title: Grafana,      url: https://grafana.kaiser.lan }
+                  - { title: Grafana (cerberus), url: https://grafana.cerberus.lan }
                   - { title: Prometheus,   url: https://prometheus.kaiser.lan }
                   - { title: Alertmanager, url: https://alertmanager.kaiser.lan }
                   - { title: Loki,         url: https://loki.kaiser.lan }
@@ -80,6 +81,7 @@ pages:
                   - { title: SparkyFitness,  url: https://fitness.kaiser.lan }
                   - { title: LibreChat,      url: https://chat.kaiser.lan }
                   - { title: Exercises,      url: https://exercises.kaiser.lan }
+                  - { title: NVR (Frigate),  url: https://nvr.cerberus.lan }
                   - { title: pfSense,        url: https://router.lan }
               - title: Cluster
                 color: 10 70 50
@@ -116,6 +118,8 @@ pages:
               - { title: Audiobookshelf, url: https://audiobookshelf.kaiser.lan, icon: di:audiobookshelf, allow-insecure: true }
               - { title: Calibre-Web,    url: https://calibre.kaiser.lan,        icon: di:calibre-web,    allow-insecure: true, alt-status-codes: [302] }
               - { title: Shelfmark,      url: https://shelfmark.kaiser.lan,      icon: mdi:book-search,   allow-insecure: true, alt-status-codes: [302] }
+              - { title: NVR (Frigate),  url: https://nvr.cerberus.lan,          icon: mdi:cctv,          allow-insecure: true, check-url: https://nvr.cerberus.lan/api/version }
+              - { title: Grafana (cerberus), url: https://grafana.cerberus.lan,  icon: di:grafana,        allow-insecure: true, check-url: https://grafana.cerberus.lan/api/health }
               - { title: Authentik,      url: https://auth.neptune.lan,          icon: di:authentik,      allow-insecure: true, alt-status-codes: [302] }
               - { title: Firefox Sync,   url: https://accounts.fxa.neptune.lan,  icon: di:firefox,        allow-insecure: true, check-url: https://accounts.fxa.neptune.lan/.well-known/fxa-client-configuration }
               - { title: Home Assistant, url: https://homeiot.lan,               icon: di:home-assistant, allow-insecure: true }

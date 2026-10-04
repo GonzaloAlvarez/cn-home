@@ -24,7 +24,7 @@ from pathlib import Path
 from urllib.request import urlretrieve
 
 DESCRIPTION = (
-    "ensure pfSense Unbound has Domain Overrides for one or more LAN zones. "
+    "ensure pfSense has the Domain Overrides, Host Overrides and DHCP static mappings from .env. "
     "With no CLI args, iterates LAN_OVERRIDES from .env (a space-separated "
     "list of `zone=IP` pairs). With --domain/--ip, programs a single zone "
     "(legacy single-zone mode)."
@@ -126,6 +126,31 @@ def _load_lan_hosts() -> list[tuple[str, str]]:
         fqdn, ip = fqdn.strip(), ip.strip()
         if fqdn and ip and "." in fqdn:
             out.append((fqdn, ip))
+    return out
+
+
+def _load_lan_static_mappings() -> list[dict]:
+    """Parse LAN_STATIC_MAPPINGS from .env — space-separated
+    `iface:mac=ip=hostname` entries, e.g.
+    `lan:48:0f:cf:48:17:f9=10.0.0.230=cerberus`.
+
+    Use for DHCP static mappings (Services → DHCP Server → <iface> → Static
+    Mappings). `iface` is pfSense's interface id (lan, opt1, …). The IP must be
+    OUTSIDE that interface's DHCP pool (pfSense rejects it otherwise). Upsert is
+    keyed on the MAC; nothing is ever deleted.
+    """
+    raw = _load_env_value("LAN_STATIC_MAPPINGS") or ""
+    out: list[dict] = []
+    for tok in raw.split():
+        if ":" not in tok or "=" not in tok:
+            continue
+        iface, _, rest = tok.partition(":")
+        parts = rest.split("=")
+        if len(parts) < 3:
+            continue
+        mac, ip, hostname = parts[0].strip().lower(), parts[1].strip(), parts[2].strip()
+        if re.fullmatch(r"[0-9a-f]{2}(:[0-9a-f]{2}){5}", mac) and iface and ip and hostname:
+            out.append({"iface": iface, "mac": mac, "ip": ip, "hostname": hostname})
     return out
 
 
@@ -344,6 +369,64 @@ def upsert_override(session: requests.Session, base: str, *,
     )
 
 
+def get_static_mappings(session: requests.Session, base: str, iface: str) -> list[dict]:
+    """Parse DHCP static-mapping rows for one interface from /services_dhcp.php?if=<iface>.
+
+    pfSense 2.8 renders one <tr> per mapping with the edit link
+    services_dhcp_edit.php?if=<iface>&id=N and the MAC as plain text in a cell;
+    column order varies between ISC and Kea pages, so key on the MAC only.
+    """
+    r = session.get(f"{base}/services_dhcp.php?if={iface}", verify=False, timeout=HTTP_TIMEOUT)
+    r.raise_for_status()
+    rows: list[dict] = []
+    for tr in re.split(r"<tr\b", r.text)[1:]:
+        tr = tr.split("</tr>", 1)[0]
+        m_id = re.search(r"services_dhcp_edit\.php\?if=" + re.escape(iface) + r"&(?:amp;)?id=(\d+)", tr)
+        m_mac = re.search(r"\b([0-9a-fA-F]{2}(?::[0-9a-fA-F]{2}){5})\b", tr)
+        if m_id and m_mac:
+            m_ip = re.search(r"\b(\d{1,3}(?:\.\d{1,3}){3})\b", tr)
+            rows.append({"idx": int(m_id.group(1)), "mac": m_mac.group(1).lower(),
+                         "ip": m_ip.group(1) if m_ip else ""})
+    return rows
+
+
+def upsert_static_mapping(session: requests.Session, base: str, *,
+                          iface: str, mac: str, ip: str, hostname: str, idx: int | None,
+                          descr: str = "cn-home (managed by cn-home/domain.py)") -> None:
+    """Create or update a DHCP static mapping (MAC → IP + hostname), then Apply."""
+    edit = f"{base}/services_dhcp_edit.php?if={iface}"
+    if idx is not None:
+        edit += f"&id={idx}"
+    csrf_val = csrf(session, edit)
+    r = session.post(
+        edit,
+        data={
+            "__csrf_magic": csrf_val,
+            "mac": mac,
+            "cid": "",
+            "ipaddr": ip,
+            "hostname": hostname,
+            "descr": descr,
+            "save": "Save",
+        },
+        verify=False, timeout=HTTP_TIMEOUT, allow_redirects=True,
+    )
+    r.raise_for_status()
+    # pfSense re-renders the edit form with an error box when the input is
+    # rejected (e.g. IP inside the DHCP pool) instead of redirecting.
+    err = re.search(r'<div class="alert alert-danger[^"]*"[^>]*>(.*?)</div>', r.text, re.DOTALL)
+    if err:
+        sys.exit("pfSense rejected the static mapping: " + re.sub(r"<[^>]+>", " ", err.group(1)).strip()[:300])
+    apply_url = f"{base}/services_dhcp.php?if={iface}"
+    csrf_val = csrf(session, apply_url)
+    r = session.post(
+        apply_url,
+        data={"__csrf_magic": csrf_val, "apply": "Apply Changes", "if": iface},
+        verify=False, timeout=HTTP_TIMEOUT, allow_redirects=True,
+    )
+    r.raise_for_status()
+
+
 # ---------- DNS health probe --------------------------------------------- #
 
 def _probe_dns_socket(host: str, timeout: float = 2.0) -> bool:
@@ -490,6 +573,29 @@ def main() -> int:
                 raise
             except Exception as e:
                 print(f"✗ {fqdn} (host) → {ip}: {e}", file=sys.stderr)
+                rc = 1
+    # ---- DHCP static mappings (LAN_STATIC_MAPPINGS) ----
+    mappings = _load_lan_static_mappings() if not (args.domain or args.ip) else []
+    if mappings:
+        by_iface: dict[str, list[dict]] = {}
+        for m in mappings:
+            iface = m["iface"]
+            if iface not in by_iface:
+                by_iface[iface] = get_static_mappings(session, base, iface)
+            existing = next((e for e in by_iface[iface] if e["mac"] == m["mac"]), None)
+            if existing and existing["ip"] == m["ip"]:
+                print(f"✓ {m['hostname']} {m['mac']} → {m['ip']} (static mapping on {iface}, no change)")
+                continue
+            try:
+                upsert_static_mapping(session, base, iface=iface, mac=m["mac"], ip=m["ip"],
+                                      hostname=m["hostname"], idx=existing["idx"] if existing else None)
+                verb = "updated" if existing else "created"
+                print(f"✓ {m['hostname']} {m['mac']} → {m['ip']} (static mapping on {iface}, {verb})")
+                by_iface[iface] = get_static_mappings(session, base, iface)
+            except SystemExit:
+                raise
+            except Exception as e:
+                print(f"✗ {m['hostname']} {m['mac']} → {m['ip']}: {e}", file=sys.stderr)
                 rc = 1
     return rc
 
