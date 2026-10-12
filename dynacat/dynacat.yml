@@ -127,7 +127,7 @@ pages:
               # cn-printer on printer.lan — plain HTTP, Docker-published by the ts-printer sidecar
               - { title: Print (CUPS),   url: http://printer.lan:631,            icon: mdi:printer,       allow-insecure: true }
               - { title: Scan,           url: http://printer.lan:8080,           icon: mdi:scanner,       allow-insecure: true, check-url: http://printer.lan:8080/api/v1/system }
-              - { title: Scan/Upload (swis), url: http://printer.lan:5520,       icon: mdi:cloud-upload,  allow-insecure: true }
+              - { title: Scan/Upload (swis), url: http://printer.lan:5520,       icon: mdi:cloud-upload,  allow-insecure: true, check-url: http://printer.lan:5520/app/ }
               - { title: Authentik,      url: https://auth.neptune.lan,          icon: di:authentik,      allow-insecure: true, alt-status-codes: [302] }
               - { title: Firefox Sync,   url: https://accounts.fxa.neptune.lan,  icon: di:firefox,        allow-insecure: true, check-url: https://accounts.fxa.neptune.lan/.well-known/fxa-client-configuration }
               - { title: Home Assistant, url: https://homeiot.lan,               icon: di:home-assistant, allow-insecure: true }

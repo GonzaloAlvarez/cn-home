@@ -133,7 +133,10 @@ fail=0
 echo
 echo "  [DNS] each subdomain should resolve to $KAISER_IP (via the system resolver)"
 for h in "${SUBDOMAINS[@]}"; do
-  ip=$(getent hosts "$h.$LAN_DOMAIN" 2>/dev/null | awk '{print $1}' | head -1)
+  ip=""
+  if command -v getent >/dev/null 2>&1; then
+    ip=$(getent hosts "$h.$LAN_DOMAIN" 2>/dev/null | awk '{print $1}' | head -1)
+  fi
   if [ -z "$ip" ]; then
     # macOS doesn't have getent; fall back to `host`.
     ip=$(host "$h.$LAN_DOMAIN" 2>/dev/null | awk '/has address/ {print $4; exit}')
