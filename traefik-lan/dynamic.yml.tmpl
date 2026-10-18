@@ -303,6 +303,20 @@ http:
       tls:
         certResolver: stepca
 
+    # cn-llmrouter — LiteLLM gateway (OpenAI + Anthropic APIs for qwen-code and
+    # Claude Code). Backend is the ts-llmrouter sidecar's published
+    # 127.0.0.1:4000. No auth by design (tailnet + LAN are the boundary).
+    # Split horizon like chat/exercises: llmrouter.lab.gn.al gets a step-ca
+    # leaf here for LAN clients (pfSense Host Override → kaiser); tailnet
+    # clients hit the VPS traefik-lab LE wildcard via cn-llmrouter's
+    # consul-register.
+    llmrouter-lab:
+      rule: "Host(`llmrouter.lab.gn.al`)"
+      entryPoints: [websecure]
+      service: llmrouter
+      tls:
+        certResolver: stepca
+
   services:
     home:
       loadBalancer:
@@ -429,3 +443,9 @@ http:
       loadBalancer:
         servers:
           - url: "http://127.0.0.1:8086"
+    # cn-llmrouter LiteLLM backend — 127.0.0.1:4000 published by the
+    # ts-llmrouter Tailscale sidecar in cn-llmrouter.
+    llmrouter:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1:4000"

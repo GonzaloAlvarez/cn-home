@@ -81,6 +81,7 @@ pages:
                   - { title: SparkyFitness,  url: https://fitness.kaiser.lan }
                   - { title: LibreChat,      url: https://chat.kaiser.lan }
                   - { title: Exercises,      url: https://exercises.kaiser.lan }
+                  - { title: LLM Router,     url: https://llmrouter.lab.gn.al/v1/models }
                   - { title: NVR (Frigate),  url: https://nvr.cerberus.lan }
                   - { title: Print (CUPS),   url: http://printer.lan:631 }
                   - { title: Scan,           url: https://scan.print.lan }
@@ -133,6 +134,8 @@ pages:
               - { title: SparkyFitness,  url: https://fitness.kaiser.lan,        icon: mdi:dumbbell,      allow-insecure: true }
               - { title: LibreChat,      url: https://chat.kaiser.lan,           icon: mdi:robot-happy,   allow-insecure: true, alt-status-codes: [302] }
               - { title: Exercises,      url: https://exercises.kaiser.lan,      icon: mdi:weight-lifter, allow-insecure: true }
+              # cn-llmrouter — LiteLLM gateway on kaiser (ts-llmrouter sidecar :4000); /health/liveliness is unauthenticated
+              - { title: LLM Router,     url: https://llmrouter.lab.gn.al/v1/models, icon: mdi:router-network, allow-insecure: true, check-url: https://llmrouter.lab.gn.al/health/liveliness }
               - { title: pfSense,        url: https://router.lan,                icon: di:pfsense,        allow-insecure: true }
               - { title: Technitium DNS, url: https://dns.pki.lan,               icon: mdi:dns,           allow-insecure: true }
 
