@@ -42,7 +42,6 @@ pages:
                 color: 280 70 50
                 links:
                   - { title: Grafana,      url: https://grafana.kaiser.lan }
-                  - { title: Grafana (cerberus), url: https://grafana.cerberus.lan }
                   - { title: Prometheus,   url: https://prometheus.kaiser.lan }
                   - { title: Alertmanager, url: https://alertmanager.kaiser.lan }
                   - { title: Loki,         url: https://loki.kaiser.lan }
@@ -122,7 +121,6 @@ pages:
               - { title: Calibre-Web,    url: https://calibre.kaiser.lan,        icon: di:calibre-web,    allow-insecure: true, alt-status-codes: [302] }
               - { title: Shelfmark,      url: https://shelfmark.kaiser.lan,      icon: mdi:book-search,   allow-insecure: true, alt-status-codes: [302] }
               - { title: NVR (Frigate),  url: https://nvr.cerberus.lan,          icon: mdi:cctv,          allow-insecure: true, check-url: https://nvr.cerberus.lan/api/version }
-              - { title: Grafana (cerberus), url: https://grafana.cerberus.lan,  icon: di:grafana,        allow-insecure: true, check-url: https://grafana.cerberus.lan/api/health }
               # cn-printer on printer.lan — scan UI behind the Pi's traefik-lan (step-ca); CUPS plain HTTP by port
               - { title: Print (CUPS),   url: http://printer.lan:631,            icon: mdi:printer,       allow-insecure: true }
               - { title: Scan,           url: https://scan.print.lan,            icon: mdi:scanner,       allow-insecure: true, check-url: https://scan.print.lan/api/v1/system }
