@@ -27,7 +27,8 @@ DESCRIPTION = (
     "ensure pfSense has the Domain Overrides, Host Overrides and DHCP static mappings from .env. "
     "With no CLI args, iterates LAN_OVERRIDES from .env (a space-separated "
     "list of `zone=IP` pairs). With --domain/--ip, programs a single zone "
-    "(legacy single-zone mode)."
+    "(legacy single-zone mode). --delete-host FQDN removes one Host Override "
+    "instead (the only thing this tool ever deletes)."
 )
 
 # ---------- self-bootstrap ------------------------------------------------ #
@@ -319,6 +320,48 @@ def upsert_host_override(session: requests.Session, base: str, *,
     r.raise_for_status()
 
 
+def delete_host_override(session: requests.Session, base: str, *, fqdn: str) -> int:
+    """Remove the Host Override(s) for FQDN, then Apply Changes.
+
+    The only deletion this tool performs. pfSense 2.7 deletes rows with a
+    CSRF-protected POST (act=del, type=host, id=N) to services_unbound.php;
+    older releases used the same parameters on a GET, which is the fallback.
+    Rows are addressed by index, so duplicates are removed highest-first.
+    """
+    if "." not in fqdn:
+        sys.exit(f"FQDN {fqdn!r} has no dot — Host Override needs host.domain")
+    host, _, domain = fqdn.partition(".")
+    list_url = f"{base}/services_unbound.php"
+
+    def matching() -> list[dict]:
+        return [h for h in get_host_overrides(session, base)
+                if h["host"] == host and h["domain"] == domain]
+
+    rows = matching()
+    if not rows:
+        print(f"✓ {fqdn} (host) not present — nothing to delete")
+        return 0
+    for row in sorted(rows, key=lambda h: h["idx"], reverse=True):
+        params = {"act": "del", "type": "host", "id": str(row["idx"])}
+        csrf_val = csrf(session, list_url)
+        r = session.post(list_url, data={"__csrf_magic": csrf_val, **params},
+                         verify=False, timeout=HTTP_TIMEOUT, allow_redirects=True)
+        r.raise_for_status()
+        if any(h["idx"] == row["idx"] and h["ip"] == row["ip"] for h in matching()):
+            r = session.get(list_url, params=params, verify=False, timeout=HTTP_TIMEOUT)
+            r.raise_for_status()
+        print(f"✓ {fqdn} (host) → {row['ip']} deleted (id={row['idx']})")
+    left = matching()
+    if left:
+        sys.exit(f"✗ {fqdn} (host) still listed after delete: {left}")
+    csrf_val = csrf(session, list_url)
+    r = session.post(list_url, data={"__csrf_magic": csrf_val, "apply": "Apply Changes"},
+                     verify=False, timeout=HTTP_TIMEOUT, allow_redirects=True)
+    r.raise_for_status()
+    print("✓ Apply Changes (Unbound reloaded)")
+    return 0
+
+
 def upsert_override(session: requests.Session, base: str, *,
                     domain: str, ip: str, idx: int | None,
                     descr: str = "cn-home (managed by cn-home/domain.py)") -> None:
@@ -477,6 +520,9 @@ def main() -> int:
                    help="pfSense host (default: cached, else prompt with detected gateway)")
     p.add_argument("--refresh-creds", action="store_true",
                    help="forget cached pfSense host + credentials and re-prompt")
+    p.add_argument("--delete-host", metavar="FQDN", default=None,
+                   help="remove the Host Override for FQDN (then Apply Changes) and exit; "
+                        "nothing from .env is touched")
     args = p.parse_args()
 
     if args.refresh_creds and CREDS_FILE.exists():
@@ -487,7 +533,9 @@ def main() -> int:
     #   - if user passed --domain or --ip, single-zone CLI mode
     #   - elif LAN_OVERRIDES is non-empty, iterate it
     #   - else fall back to LAN_DOMAIN/KAISER_IP single-zone (legacy)
-    if args.domain or args.ip:
+    if args.delete_host:
+        zones = []          # removal mode: exactly one Host Override, nothing from .env
+    elif args.domain or args.ip:
         domain = args.domain or default_domain
         ip = args.ip or default_ip
         if not ip:
@@ -529,6 +577,9 @@ def main() -> int:
         session.proxies = {"http": pf_proxy, "https": pf_proxy}
     login(session, base, creds["user"], creds["password"])
     save_creds(host=host, user=creds["user"], password=creds["password"])
+
+    if args.delete_host:
+        return delete_host_override(session, base, fqdn=args.delete_host)
 
     overrides = get_overrides(session, base)
     rc = 0
