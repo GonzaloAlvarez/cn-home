@@ -133,6 +133,7 @@ deploy_repo() {
     # both so the rendered config is what runs (a ~2 s blip of LAN ingress).
     ssh "${SSH_OPTS[@]}" "$KAISER_SSH" \
       "cd '$remote_dir' && docker compose -p '$project_name' up -d --force-recreate --no-deps traefik-lan dynacat"
+    sleep 10   # let Traefik reload its ACME store before the verification curls
   fi
 }
 
