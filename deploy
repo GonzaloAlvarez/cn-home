@@ -4,6 +4,8 @@
 #
 #   ./deploy                          # cn-home only
 #   ./deploy --with-observability     # also deploy ../cn-observability/ first
+#                                     (its .env on kaiser comes from Kauket:
+#                                      kaiser.cn_observability_env, not from here)
 #   ./deploy --skip-dns               # skip the pfSense step (.pf-creds missing)
 #   ./deploy --skip-verify            # skip the post-deploy curl checks
 
@@ -82,21 +84,46 @@ if ! $SKIP_DNS; then
 fi
 
 deploy_repo() {
-  local local_dir="$1" remote_dir="$2" project_name="$3"
+  # deploy_repo <local_dir> <remote_dir> <project_name> [kauket_secret_id]
+  #
+  # Without a Kauket id the LOCAL .env is the source of truth and is scp'd to
+  # the host (cn-home: the Mac-side .env also drives pfSense / LAN_HOSTS).
+  # With a Kauket id the HOST's .env is Kauket-installed: nothing local is
+  # copied over it, `kauket get` refreshes it and the repo's setup.sh
+  # re-renders templates on the host. Everything the repo gitignores (.env,
+  # rendered configs, the fetched root CA) is host state in that mode and is
+  # neither pushed nor deleted by rsync. This is what ended the recurring
+  # grafana.kaiser.lan "client_id missing or invalid": the Mac's stale
+  # cn-observability/.env used to be scp'd over a hand-fixed kaiser copy.
+  local local_dir="$1" remote_dir="$2" project_name="$3" kauket_id="${4:-}"
   echo
   echo "==> $local_dir → $KAISER_SSH:$remote_dir (project: $project_name)"
 
-  if [ ! -f "$local_dir/.env" ]; then
+  local -a rsync_opts=("${RSYNC_OPTS[@]}")
+  if [ -n "$kauket_id" ]; then
+    if [ -f "$local_dir/.gitignore" ]; then
+      rsync_opts+=(--exclude-from "$local_dir/.gitignore")
+    fi
+  elif [ ! -f "$local_dir/.env" ]; then
     echo "missing $local_dir/.env — run ./setup.sh in that directory first" >&2
     return 1
   fi
 
   ssh "${SSH_OPTS[@]}" "$KAISER_SSH" "mkdir -p '$remote_dir'"
-  rsync "${RSYNC_OPTS[@]}" -e "ssh ${SSH_OPTS[*]}" "$local_dir/" "$KAISER_SSH:$remote_dir/"
-  scp "${SSH_OPTS[@]}" "$local_dir/.env" "$KAISER_SSH:$remote_dir/.env"
-  if [ -f "$local_dir/certs/root_ca.crt" ]; then
-    ssh "${SSH_OPTS[@]}" "$KAISER_SSH" "mkdir -p '$remote_dir/certs'"
-    scp "${SSH_OPTS[@]}" "$local_dir/certs/root_ca.crt" "$KAISER_SSH:$remote_dir/certs/root_ca.crt"
+  rsync "${rsync_opts[@]}" -e "ssh ${SSH_OPTS[*]}" "$local_dir/" "$KAISER_SSH:$remote_dir/"
+
+  if [ -n "$kauket_id" ]; then
+    # `kauket get` refuses a destination that was edited in place (unmanaged).
+    # Fix the value with `kauket add <id> <file> --force` on the Mac and
+    # re-run; never edit the host copy.
+    ssh "${SSH_OPTS[@]}" "$KAISER_SSH" \
+      "cd '$remote_dir' && kauket get '$kauket_id' && ./setup.sh"
+  else
+    scp "${SSH_OPTS[@]}" "$local_dir/.env" "$KAISER_SSH:$remote_dir/.env"
+    if [ -f "$local_dir/certs/root_ca.crt" ]; then
+      ssh "${SSH_OPTS[@]}" "$KAISER_SSH" "mkdir -p '$remote_dir/certs'"
+      scp "${SSH_OPTS[@]}" "$local_dir/certs/root_ca.crt" "$KAISER_SSH:$remote_dir/certs/root_ca.crt"
+    fi
   fi
 
   ssh "${SSH_OPTS[@]}" "$KAISER_SSH" "cd '$remote_dir' && docker compose -p '$project_name' up -d"
@@ -111,7 +138,8 @@ if $WITH_OBS; then
   fi
   echo
   echo "==> 2/4 deploying cn-observability"
-  deploy_repo "$OBS_DIR" "${KAISER_REMOTE_DIR%/cn-home}/cn-observability" "cn-observability"
+  # kaiser's cn-observability/.env is Kauket-installed (kaiser.cn_observability_env).
+  deploy_repo "$OBS_DIR" "${KAISER_REMOTE_DIR%/cn-home}/cn-observability" "cn-observability" "kaiser.cn_observability_env"
 fi
 
 # --- 3. cn-home --------------------------------------------------------- #
@@ -135,11 +163,14 @@ echo "  [DNS] each subdomain should resolve to $KAISER_IP (via the system resolv
 for h in "${SUBDOMAINS[@]}"; do
   ip=""
   if command -v getent >/dev/null 2>&1; then
-    ip=$(getent hosts "$h.$LAN_DOMAIN" 2>/dev/null | awk '{print $1}' | head -1)
+    ip=$(getent hosts "$h.$LAN_DOMAIN" 2>/dev/null | awk '{print $1}' | head -1 || true)
   fi
   if [ -z "$ip" ]; then
     # macOS doesn't have getent; fall back to `host`.
-    ip=$(host "$h.$LAN_DOMAIN" 2>/dev/null | awk '/has address/ {print $4; exit}')
+    # `|| true`: under `set -e -o pipefail` a failed lookup (NXDOMAIN, no
+    # `host` binary, VPN resolver) used to abort the whole deploy here with
+    # exit 1 and no message, instead of printing the ✗ row below.
+    ip=$(host "$h.$LAN_DOMAIN" 2>/dev/null | awk '/has address/ {print $4; exit}' || true)
   fi
   if [ "$ip" = "$KAISER_IP" ]; then
     printf "    %-32s → %s  ✓\n" "$h.$LAN_DOMAIN" "$ip"

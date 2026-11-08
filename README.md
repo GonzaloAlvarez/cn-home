@@ -45,7 +45,7 @@ You'll be asked for `ADMIN_EMAIL` and confirm the LAN topology defaults. The scr
 
 ```sh
 ./deploy                       # cn-home only
-./deploy --with-observability  # also deploys the sibling cn-observability/
+./deploy --with-observability  # also deploys the sibling cn-observability/ (its .env comes from Kauket)
 ./deploy --skip-dns            # skip the pfSense step (e.g., re-running)
 ./deploy --skip-verify         # skip the post-deploy curl checks
 ```
@@ -58,7 +58,7 @@ What `./deploy` does, in order:
 4. `ssh kaiser docker compose -p cn-home up -d`.
 5. Verification: DNS, TLS handshake against each subdomain, SSL verify result.
 
-If `--with-observability`, repeats 2–4 for `../cn-observability/` **before** cn-home (so the backends are listening when Traefik first tries to route).
+If `--with-observability`, repeats 2–4 for `../cn-observability/` **before** cn-home (so the backends are listening when Traefik first tries to route) — with one difference: that repo's `.env` on kaiser is **Kauket-installed** (`kaiser.cn_observability_env`), so step 3 is replaced by `kauket get kaiser.cn_observability_env && ./setup.sh` run on kaiser (the host re-renders its own templates), and rsync neither pushes nor deletes anything that repo gitignores (`.env`, rendered configs, the fetched root CA). The Mac's `cn-observability/.env`, if one exists, is never copied. To change a value: `kauket add kaiser.cn_observability_env <file> --force` on the Mac, then redeploy. Never edit the file on kaiser — `kauket get` refuses an in-place-edited destination, which is the point: before this, every deploy scp'd a stale Mac copy over the hand-fixed kaiser `.env` and brought back Authentik's "client_id is missing or invalid" on `grafana.kaiser.lan`.
 
 ## How to add a new service
 
