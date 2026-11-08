@@ -127,6 +127,12 @@ deploy_repo() {
   fi
 
   ssh "${SSH_OPTS[@]}" "$KAISER_SSH" "cd '$remote_dir' && docker compose -p '$project_name' up -d"
+  if [ "$project_name" = cn-observability ]; then
+    # prometheus.yml / alerts.yml are single-file bind mounts: a rsync leaves
+    # the container on the old inode, so recreate Prometheus to load them.
+    ssh "${SSH_OPTS[@]}" "$KAISER_SSH" \
+      "cd '$remote_dir' && docker compose -p '$project_name' up -d --force-recreate --no-deps prometheus"
+  fi
   if [ "$project_name" = cn-home ]; then
     # Single-file bind mounts (dynamic.yml, dynacat.yml) keep the old inode
     # after an rsync and traefik-lan runs without a file watcher: recreate
