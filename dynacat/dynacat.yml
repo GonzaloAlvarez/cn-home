@@ -76,6 +76,7 @@ pages:
                   - { title: Firefox Sync,   url: https://accounts.fxa.neptune.lan }
                   - { title: Home Assistant, url: https://homeiot.lan }
                   - { title: Outline,        url: https://outline.lab.gn.al }
+                  - { title: Paperless,      url: https://docs.lab.gn.al }
                   - { title: Vaultwarden,    url: https://passwords.lan }
                   - { title: SparkyFitness,  url: https://fitness.kaiser.lan }
                   - { title: LibreChat,      url: https://chat.kaiser.lan }
@@ -128,6 +129,8 @@ pages:
               - { title: Firefox Sync,   url: https://accounts.fxa.neptune.lan,  icon: di:firefox,        allow-insecure: true, check-url: https://accounts.fxa.neptune.lan/.well-known/fxa-client-configuration }
               - { title: Home Assistant, url: https://homeiot.lan,               icon: di:home-assistant, allow-insecure: true }
               - { title: Outline,        url: https://outline.lab.gn.al,         icon: di:outline,        allow-insecure: true, check-url: https://outline.lab.gn.al/_health }
+              # cn-paperless — Paperless-ngx on kaiser (ts-docs :8000); / 302s to the login page, probe that (200 unauth)
+              - { title: Paperless,      url: https://docs.lab.gn.al,            icon: di:paperless-ngx,  allow-insecure: true, check-url: https://docs.lab.gn.al/accounts/login/ }
               - { title: Vaultwarden,    url: https://passwords.lan,             icon: di:vaultwarden,    allow-insecure: true }
               - { title: SparkyFitness,  url: https://fitness.kaiser.lan,        icon: mdi:dumbbell,      allow-insecure: true }
               - { title: LibreChat,      url: https://chat.kaiser.lan,           icon: mdi:robot-happy,   allow-insecure: true, alt-status-codes: [302] }

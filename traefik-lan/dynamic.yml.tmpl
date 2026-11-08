@@ -59,6 +59,16 @@ http:
         replacement: "https://roms.lab.gn.al/${1}"
         permanent: true
 
+    # ── Paperless canonical-URL redirect ─────────────────────────────────
+    # docs.kaiser.lan → docs.lab.gn.al (301). Paperless has ONE origin:
+    # PAPERLESS_URL fixes ALLOWED_HOSTS/CSRF and the Authentik redirect URI is
+    # strict (cn-paperless). Same envsubst scoping as roms-canonical.
+    docs-canonical:
+      redirectRegex:
+        regex: "^https://docs\\.${LAN_DOMAIN}/(.*)"
+        replacement: "https://docs.lab.gn.al/${1}"
+        permanent: true
+
   routers:
     # Catch-all: any HTTP request hitting Traefik on :80 is bumped to :443.
     http-catchall:
@@ -246,6 +256,28 @@ http:
       tls:
         certResolver: stepca
 
+    # cn-paperless — Paperless-ngx. Backend is the ts-docs sidecar's published
+    # 127.0.0.1:8000. Native OIDC (Authentik) is done by Paperless itself — no
+    # forward-auth middleware. Canonical origin docs.lab.gn.al: the LAN alias
+    # 301s (RomM pattern); the canonical name gets a step-ca leaf here
+    # (Technitium record + pfSense override docs.lab.gn.al → kaiser validate
+    # HTTP-01); tailnet clients hit the VPS traefik-lab (LE wildcard) via
+    # cn-paperless's consul-register.
+    docs:
+      rule: "Host(`docs.${LAN_DOMAIN}`)"
+      entryPoints: [websecure]
+      middlewares:
+        - docs-canonical
+      service: noop@internal
+      tls:
+        certResolver: stepca
+    docs-lab:
+      rule: "Host(`docs.lab.gn.al`)"
+      entryPoints: [websecure]
+      service: docs
+      tls:
+        certResolver: stepca
+
     # cn-fitness — SparkyFitness. Backend is the ts-fitness sidecar's
     # published 127.0.0.1:3004 (frontend nginx, which proxies /api/* to
     # backend on :3010 inside the same netns). Native Android/iOS apps
@@ -414,6 +446,17 @@ http:
         passHostHeader: true
         servers:
           - url: "http://127.0.0.1:8083"
+
+    # cn-paperless Paperless-ngx backend — 127.0.0.1:8000 published by the
+    # ts-docs Tailscale sidecar in cn-paperless. passHostHeader so Paperless
+    # sees docs.lab.gn.al (ALLOWED_HOSTS / CSRF / OIDC). Tailnet ingress
+    # (docs.lab.gn.al) is wired via cn-paperless's consul-register loop + VPS
+    # traefik-lab.
+    docs:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+          - url: "http://127.0.0.1:8000"
 
     # cn-fitness SparkyFitness backend — 127.0.0.1:3004 published by the
     # ts-fitness Tailscale sidecar in cn-fitness (host port 3004 → container
