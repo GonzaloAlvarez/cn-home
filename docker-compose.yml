@@ -18,7 +18,13 @@ services:
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
       - "--providers.file.filename=/etc/traefik/dynamic.yml"
-      - "--providers.file.watch=true"
+      # No file watcher: the watcher needs an inotify instance, and on
+      # 2026-11-07 a recreate found root's instances exhausted on kaiser
+      # ("error creating file watcher: too many open files") — the provider
+      # then loads NOTHING and every LAN route 404s. The homelab rule is
+      # "recreate, do not reload" anyway (./deploy force-recreates traefik-lan
+      # and dynacat after every rsync), so the watcher bought nothing.
+      - "--providers.file.watch=false"
       - "--certificatesresolvers.stepca.acme.caserver=https://${PKI_IP}:9000/acme/acme/directory"
       - "--certificatesresolvers.stepca.acme.email=${ADMIN_EMAIL}"
       - "--certificatesresolvers.stepca.acme.storage=/acme/acme.json"

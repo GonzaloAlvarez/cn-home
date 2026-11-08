@@ -127,6 +127,13 @@ deploy_repo() {
   fi
 
   ssh "${SSH_OPTS[@]}" "$KAISER_SSH" "cd '$remote_dir' && docker compose -p '$project_name' up -d"
+  if [ "$project_name" = cn-home ]; then
+    # Single-file bind mounts (dynamic.yml, dynacat.yml) keep the old inode
+    # after an rsync and traefik-lan runs without a file watcher: recreate
+    # both so the rendered config is what runs (a ~2 s blip of LAN ingress).
+    ssh "${SSH_OPTS[@]}" "$KAISER_SSH" \
+      "cd '$remote_dir' && docker compose -p '$project_name' up -d --force-recreate --no-deps traefik-lan dynacat"
+  fi
 }
 
 # --- 2. cn-observability (must be up before cn-home routes to it) -------- #
