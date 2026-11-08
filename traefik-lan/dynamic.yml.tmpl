@@ -69,6 +69,15 @@ http:
         replacement: "https://docs.lab.gn.al/${1}"
         permanent: true
 
+    # ── OpenCloud canonical-URL redirect ─────────────────────────────────
+    # drive.kaiser.lan → drive.lab.gn.al (301): OC_URL and the public OIDC
+    # client's redirect URIs are bound to one origin (cn-opencloud).
+    drive-canonical:
+      redirectRegex:
+        regex: "^https://drive\\.${LAN_DOMAIN}/(.*)"
+        replacement: "https://drive.lab.gn.al/${1}"
+        permanent: true
+
   routers:
     # Catch-all: any HTTP request hitting Traefik on :80 is bumped to :443.
     http-catchall:
@@ -278,6 +287,28 @@ http:
       tls:
         certResolver: stepca
 
+    # cn-opencloud — OpenCloud (the Drive replacement). Backend is the ts-drive
+    # sidecar's published 127.0.0.1:9200. Native OIDC (public client `web`
+    # against Authentik) inside OpenCloud — no forward-auth. Same canonical
+    # shape as docs: alias 301s, canonical name gets a step-ca leaf here
+    # (Technitium record + pfSense override drive.lab.gn.al → kaiser), tailnet
+    # via cn-opencloud's consul-register → VPS traefik-lab. Uploads use TUS
+    # 10 MB chunks and notifications use SSE: Traefik streams both as is.
+    drive:
+      rule: "Host(`drive.${LAN_DOMAIN}`)"
+      entryPoints: [websecure]
+      middlewares:
+        - drive-canonical
+      service: noop@internal
+      tls:
+        certResolver: stepca
+    drive-lab:
+      rule: "Host(`drive.lab.gn.al`)"
+      entryPoints: [websecure]
+      service: drive
+      tls:
+        certResolver: stepca
+
     # cn-fitness — SparkyFitness. Backend is the ts-fitness sidecar's
     # published 127.0.0.1:3004 (frontend nginx, which proxies /api/* to
     # backend on :3010 inside the same netns). Native Android/iOS apps
@@ -457,6 +488,16 @@ http:
         passHostHeader: true
         servers:
           - url: "http://127.0.0.1:8000"
+
+    # cn-opencloud OpenCloud backend — 127.0.0.1:9200 published by the ts-drive
+    # Tailscale sidecar in cn-opencloud. passHostHeader so OpenCloud sees
+    # drive.lab.gn.al (OC_URL / OIDC redirect handling). Tailnet ingress is
+    # wired via cn-opencloud's consul-register loop + VPS traefik-lab.
+    drive:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+          - url: "http://127.0.0.1:9200"
 
     # cn-fitness SparkyFitness backend — 127.0.0.1:3004 published by the
     # ts-fitness Tailscale sidecar in cn-fitness (host port 3004 → container
