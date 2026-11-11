@@ -138,7 +138,9 @@ def _load_lan_static_mappings() -> list[dict]:
     Use for DHCP static mappings (Services → DHCP Server → <iface> → Static
     Mappings). `iface` is pfSense's interface id (lan, opt1, …). The IP must be
     OUTSIDE that interface's DHCP pool (pfSense rejects it otherwise). Upsert is
-    keyed on the MAC; nothing is ever deleted.
+    keyed on the MAC; when no mapping has that MAC but one already owns the IP
+    (a macOS private Wi-Fi address rotated), that mapping is re-keyed in place.
+    Nothing is ever deleted.
     """
     raw = _load_env_value("LAN_STATIC_MAPPINGS") or ""
     out: list[dict] = []
@@ -637,10 +639,18 @@ def main() -> int:
             if existing and existing["ip"] == m["ip"]:
                 print(f"✓ {m['hostname']} {m['mac']} → {m['ip']} (static mapping on {iface}, no change)")
                 continue
+            # No mapping carries this MAC, but one already owns the IP: the host's
+            # MAC changed (macOS rotates private Wi-Fi addresses). Re-key that row
+            # in place — pfSense rejects a second mapping with the same IP or
+            # hostname, and this tool never deletes.
+            stale = None
+            if existing is None:
+                stale = next((e for e in by_iface[iface] if e["ip"] == m["ip"]), None)
+                existing = stale
             try:
                 upsert_static_mapping(session, base, iface=iface, mac=m["mac"], ip=m["ip"],
                                       hostname=m["hostname"], idx=existing["idx"] if existing else None)
-                verb = "updated" if existing else "created"
+                verb = f"re-keyed from {stale['mac']}" if stale else ("updated" if existing else "created")
                 print(f"✓ {m['hostname']} {m['mac']} → {m['ip']} (static mapping on {iface}, {verb})")
                 by_iface[iface] = get_static_mappings(session, base, iface)
             except SystemExit:

@@ -96,7 +96,7 @@ sudo ufw allow from 172.16.0.0/12 to any port 9100 proto tcp \
 | `.env.example` | shape of the per-deploy `.env` |
 | `setup.sh` | interactive `.env` generation + root-CA fetch + render templates |
 | `deploy` | DNS + rsync + remote compose-up + verification |
-| `domain.py` | pfSense Domain/Host Override + static-mapping programmer (port of amun-kubernetes/domain.py); `--delete-host <fqdn>` removes one Host Override and applies — the only deletion it performs |
+| `domain.py` | pfSense Domain/Host Override + static-mapping programmer (port of amun-kubernetes/domain.py); a static mapping is keyed on MAC and re-keyed in place when a host's MAC rotated but its IP is already mapped; `--delete-host <fqdn>` removes one Host Override and applies — the only deletion it performs |
 | `traefik-lan/dynamic.yml.tmpl` | routing contract (envsubst → `dynamic.yml`) |
 | `dashy/conf.yml` | Dashy homepage config (YAML, hot-editable) |
 | `certs/root_ca.crt` | fetched by setup.sh; mounted into Traefik for Lego trust (gitignored) |
